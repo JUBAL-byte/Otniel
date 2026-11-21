@@ -230,6 +230,36 @@ fun View.roundCorners(radiusDp: Int) {
     }
 }
 
+/**
+ * A frame as tall as its text, with a picture (and a fade) stretched behind it, instead of
+ * growing to the picture's own height.
+ */
+class BackdropFrame(context: Context) : FrameLayout(context) {
+    private val backdrops = HashSet<View>()
+
+    fun addBackdrop(view: View) {
+        backdrops += view
+        addView(view, 0, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val width = MeasureSpec.getSize(widthMeasureSpec)
+        var height = 0
+        for (i in 0 until childCount) {
+            val child = getChildAt(i)
+            if (child in backdrops || child.visibility == View.GONE) continue
+            measureChildWithMargins(child, widthMeasureSpec, 0, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), 0)
+            val lp = child.layoutParams as ViewGroup.MarginLayoutParams
+            height = maxOf(height, child.measuredHeight + lp.topMargin + lp.bottomMargin)
+        }
+        height = maxOf(height + paddingTop + paddingBottom, suggestedMinimumHeight)
+        for (b in backdrops) {
+            b.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY))
+        }
+        setMeasuredDimension(width, height)
+    }
+}
+
 /** A filled circle with a white icon, like the site's play / document marks. */
 fun Context.circleIcon(icon: Int, sizeDp: Int = 34, fillRes: Int = R.color.o_cyan): ImageView = ImageView(this).apply {
     setImageResource(icon)
@@ -312,14 +342,13 @@ class PageTitleRow(private val title: String, private val subtitle: String = "")
     override val kind = 10
     override fun create(parent: ViewGroup): View {
         val c = parent.context
-        val box = FrameLayout(c)
+        val box = BackdropFrame(c)
         box.layoutParams = matchWrap()
         val img = ImageView(c).apply {
             id = R.id.row_image
             scaleType = ImageView.ScaleType.CENTER_CROP
             alpha = 0.3f
         }
-        box.addView(img, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         val page = c.color(R.color.o_page)
         val fade = View(c).apply {
             background = GradientDrawable(
@@ -327,7 +356,8 @@ class PageTitleRow(private val title: String, private val subtitle: String = "")
                 intArrayOf((page and 0x00FFFFFF) or 0x55000000, page),
             )
         }
-        box.addView(fade, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        box.addBackdrop(fade)
+        box.addBackdrop(img)
         val col = c.vertical()
         col.setPadding(c.dp(20), c.dp(54), c.dp(20), c.dp(14))
         col.add(c.display(54f).apply { id = R.id.row_title })

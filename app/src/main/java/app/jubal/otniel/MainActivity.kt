@@ -167,7 +167,7 @@ class MainActivity : AppCompatActivity() {
         val bar = horizontal()
         bar.setBackgroundColor(color(R.color.o_bar))
         bar.elevation = dp(3).toFloat()
-        bar.setPadding(dp(6), 0, dp(12), 0)
+        bar.setPadding(dp(4), 0, dp(10), 0)
         val menuButton = ImageButton(this).apply {
             setImageResource(R.drawable.ic_menu)
             imageTintList = android.content.res.ColorStateList.valueOf(color(R.color.o_teal))
@@ -185,8 +185,10 @@ class MainActivity : AppCompatActivity() {
         pill = button("חיפוש") { onPill() }.apply {
             cornerRadius = dp(22)
             minHeight = dp(40)
+            minWidth = 0
+            minimumWidth = 0
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
-            setPadding(dp(16), 0, dp(16), 0)
+            setPadding(dp(14), 0, dp(14), 0)
         }
         bar.add(pill, ViewGroup.LayoutParams.WRAP_CONTENT)
         main.add(bar, height = dp(64))
@@ -276,7 +278,7 @@ class MainActivity : AppCompatActivity() {
     private fun logoView(): View {
         val frame = FrameLayout(this)
         val words = vertical().apply { gravity = Gravity.START or Gravity.CENTER_VERTICAL }
-        words.add(display(25f).apply { text = "ישיבת עתניאל" }, ViewGroup.LayoutParams.WRAP_CONTENT)
+        words.add(display(23f).apply { text = "ישיבת עתניאל" }, ViewGroup.LayoutParams.WRAP_CONTENT)
         words.add(text(10.5f, bold = true).apply { text = "בית ועד הר חברון" }, ViewGroup.LayoutParams.WRAP_CONTENT)
         frame.addView(words, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL))
         val img = ImageView(this).apply {
@@ -285,7 +287,7 @@ class MainActivity : AppCompatActivity() {
             contentDescription = "ישיבת עתניאל"
             visibility = View.INVISIBLE
         }
-        frame.addView(img, FrameLayout.LayoutParams(dp(132), dp(42), Gravity.CENTER_VERTICAL))
+        frame.addView(img, FrameLayout.LayoutParams(dp(118), dp(38), Gravity.CENTER_VERTICAL))
         img.load(Site.LOGO) {
             listener(onSuccess = { _, _ ->
                 img.visibility = View.VISIBLE
@@ -447,7 +449,7 @@ class MainActivity : AppCompatActivity() {
 
     fun refreshBar() {
         val screen = shown ?: return
-        pill.text = if (stack.size > 1) "→ חזרה" else "חיפוש"
+        pill.text = if (stack.size > 1) "חזרה" else "חיפוש"
         actionsBox.removeAllViews()
         for (a in screen.actions()) {
             val b = ImageButton(this).apply {

@@ -74,17 +74,17 @@ class HomeScreen(act: MainActivity) : ListScreen(act) {
 
     private fun hero(): Row = ViewRow(100, { parent ->
         val c = parent.context
-        val box = FrameLayout(c)
+        val box = BackdropFrame(c)
         box.layoutParams = matchWrap()
         box.setBackgroundColor(c.color(R.color.o_teal))
         val img = ImageView(c).apply {
             id = R.id.row_image
             scaleType = ImageView.ScaleType.CENTER_CROP
         }
-        box.addView(img, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        box.addView(View(c).apply {
+        box.addBackdrop(View(c).apply {
             background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(0x22000000, 0x66000000))
-        }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        })
+        box.addBackdrop(img)
         val col = c.vertical()
         col.gravity = Gravity.CENTER_HORIZONTAL
         col.setPadding(c.dp(18), c.dp(46), c.dp(18), c.dp(40))
