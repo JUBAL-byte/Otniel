@@ -129,9 +129,11 @@ jobs:
       - name: Run on an emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          # A recent Android, with a recent WebView (as on phones that get updates), on a common phone size
+          api-level: 34
           arch: x86_64
           target: google_apis
+          profile: pixel_5
           disable-animations: true
           script: bash .github/shots.sh
 
