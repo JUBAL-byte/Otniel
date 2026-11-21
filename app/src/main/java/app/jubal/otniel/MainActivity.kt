@@ -81,7 +81,24 @@ class MainActivity : AppCompatActivity() {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             (shown as? PlayerAware)?.onMediaChanged()
         }
+
+        override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+            val now = System.currentTimeMillis()
+            if (now - lastErrorShown < 4_000) return
+            lastErrorShown = now
+            val youtube = Playback.current()?.isYouTube == true
+            val text = if (youtube) "לא הצלחנו לנגן את הסרטון כרגע (יוטיוב לא ענה)." else "לא הצלחנו לנגן את זה כרגע."
+            Snackbar.make(content, text, Snackbar.LENGTH_LONG)
+                .setAction("לנסות שוב") {
+                    Playback.controller?.run {
+                        prepare()
+                        play()
+                    }
+                }
+                .show()
+        }
     }
+    private var lastErrorShown = 0L
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(Settings.wrap(newBase))
@@ -355,15 +372,13 @@ class MainActivity : AppCompatActivity() {
         when (intent.action) {
             Intent.ACTION_VIEW -> {
                 val url = intent.dataString ?: return false
-                if (stacks[tab].isEmpty()) selectTab(Links.TAB_HOME)
-                open(url)
+                openFromOutside(url)
                 return true
             }
             Intent.ACTION_SEND -> {
                 val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return false
                 val url = Regex("https?://\\S+").find(text)?.value ?: return false
-                if (stacks[tab].isEmpty()) selectTab(Links.TAB_HOME)
-                open(url)
+                openFromOutside(url)
                 return true
             }
             ACTION_NOW_PLAYING -> {
@@ -373,6 +388,26 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return false
+    }
+
+    /** A link from outside the app (a message, a notification): opened in the tab it belongs to. */
+    private fun openFromOutside(url: String) {
+        if (isFullscreen) exitFullscreen()
+        val home = when (Links.target(url)) {
+            is Target.LessonSlug, is Target.Topic, is Target.Rabbi -> Links.TAB_LESSONS
+            is Target.Playlist -> Links.TAB_SERIES
+            is Target.Spotify, is Target.Apple -> Links.TAB_PODCASTS
+            is Target.FaqSlug, Target.FaqList, Target.Rabbis, Target.Contact, Target.About,
+            Target.Store, is Target.Product, is Target.Page -> Links.TAB_MORE
+            else -> -1
+        }
+        if (home >= 0) {
+            selectTab(home)
+            popToRoot(home)
+        } else if (stacks[tab].isEmpty()) {
+            selectTab(Links.TAB_HOME)
+        }
+        open(url)
     }
 
     /** Opens any link: the yeshiva's content inside the app, anything else only after asking. */
