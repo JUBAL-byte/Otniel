@@ -34,10 +34,12 @@ read W H < <(adb shell wm size | grep -o '[0-9]*x[0-9]*' | tail -1 | tr x ' ')
 swipe_up() { adb shell input swipe $((W / 2)) $((H * 3 / 4)) $((W / 2)) $((H / 4)) 400; }
 swipe_down() { adb shell input swipe $((W / 2)) $((H / 4)) $((W / 2)) $((H * 3 / 4)) 400; }
 
+# Android's "allow notifications?" question would cover the first pictures
+adb shell pm grant $PKG android.permission.POST_NOTIFICATIONS 2>/dev/null
 adb shell "am start -n $PKG/.MainActivity"; shot 01-home 30
 dump 01-home
 swipe_up; shot 01b-home-scrolled 5
-swipe_down; swipe_down; sleep 2
+swipe_down; swipe_down; sleep 12
 # The site's own menu button (the teal "three lines" at the top right of the page;
 # found in the second picture, as the first one may show Android's notifications question)
 pip install -q pillow >/dev/null 2>&1
@@ -51,7 +53,7 @@ if pts:
     print(sum(p[0] for p in pts) // len(pts), sum(p[1] for p in pts) // len(pts))
 PY
 )
-[ -n "$MENU" ] && adb shell input tap $MENU; shot 01c-menu 4
+[ -n "$MENU" ] && adb shell input tap $MENU; shot 01c-menu 3; shot 01d-menu-later 4
 adb shell input keyevent KEYCODE_BACK; sleep 1
 
 open_link "https://otniel.org/all-lessons/"; shot 02-lessons
