@@ -43,7 +43,7 @@ fun newPlayerView(context: Context): PlayerView = PlayerView(context).apply {
     setShowSubtitleButton(false)
     setShowShuffleButton(false)
     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-    defaultArtwork = ContextCompat.getDrawable(context, R.drawable.ic_launcher)
+    defaultArtwork = ContextCompat.getDrawable(context, R.mipmap.ic_launcher)
     setShutterBackgroundColor(Color.BLACK)
     isFocusable = true
 }
