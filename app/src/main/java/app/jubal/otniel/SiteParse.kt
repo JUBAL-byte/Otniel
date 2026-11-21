@@ -94,6 +94,19 @@ object SiteParse {
         return single
     }
 
+    private val YT_ID = Regex(
+        "(?:youtube(?:-nocookie)?\\.com/(?:watch\\?(?:[^#\"']*&(?:amp;)?)?v=|embed/|shorts/|live/|v/)|youtu\\.be/)([\\w-]{11})"
+    )
+    private val YT_LIST = Regex("[?&](?:amp;)?list=([\\w-]+)")
+
+    private fun youtubeId(url: String): String? =
+        if (url.isBlank()) null else YT_ID.find(url.replace("\\/", "/"))?.groupValues?.get(1)
+
+    private fun isPlaylist(url: String): Boolean {
+        val host = Routes.host(url) ?: return false
+        return (host == "youtube.com" || host.endsWith(".youtube.com") || host == "youtu.be") && YT_LIST.containsMatchIn(url)
+    }
+
     private fun insideListing(el: Element): Boolean = el.parents().any { it.hasClass("jet-listing-grid") }
 
     /** The YouTube (or uploaded) video a lesson page shows, and the teacher's photo. */
@@ -112,7 +125,7 @@ object SiteParse {
             if (insideListing(el)) continue
             val s = runCatching { J.parse(el.attr("data-settings")) }.getOrNull() ?: continue
             val type = s["video_type"].str()
-            val yt = Links.youtubeId(s["youtube_url"].str())
+            val yt = youtubeId(s["youtube_url"].str())
             if (yt != null && (type.isEmpty() || type == "youtube")) return LessonMedia(youtubeId = yt)
             val hosted = s["hosted_url"]["url"].str().ifBlank { s["external_url"]["url"].str() }
             if (hosted.isNotBlank()) return LessonMedia(hostedUrl = hosted)
@@ -122,7 +135,7 @@ object SiteParse {
         for (f in main.select("iframe[src], iframe[data-src], iframe[data-lazy-src]")) {
             if (insideListing(f)) continue
             val src = f.attr("src").ifBlank { f.attr("data-src") }.ifBlank { f.attr("data-lazy-src") }
-            Links.youtubeId(src)?.let { return LessonMedia(youtubeId = it) }
+            youtubeId(src)?.let { return LessonMedia(youtubeId = it) }
         }
         for (v in main.select("video[src], video source[src]")) {
             if (insideListing(v)) continue
@@ -149,7 +162,7 @@ object SiteParse {
             val title = clean(item.selectFirst(".elementor-icon-box-title, h3, h2")?.text() ?: "")
             if (title.isEmpty()) continue
             val subtitle = clean(item.selectFirst(".elementor-icon-box-description")?.text() ?: "")
-            val link = item.select("a[href]").map { it.absUrl("href") }.firstOrNull { Links.youtubePlaylist(it) != null } ?: ""
+            val link = item.select("a[href]").map { it.absUrl("href") }.firstOrNull { isPlaylist(it) } ?: ""
             var count = 0
             var category = ""
             for (li in item.select(".elementor-icon-list-text")) {
@@ -176,7 +189,7 @@ object SiteParse {
                 val href = a.absUrl("href").ifBlank { a.attr("href") }
                 when {
                     href.contains("spotify.com/") && spotify.isEmpty() -> spotify = href.substringBefore("?si=").substringBefore("&si=")
-                    Links.youtubePlaylist(href) != null && youtube.isEmpty() -> youtube = href
+                    isPlaylist(href) && youtube.isEmpty() -> youtube = href
                     href.contains("podcasts.apple.com/") && apple.isEmpty() -> apple = href
                 }
             }

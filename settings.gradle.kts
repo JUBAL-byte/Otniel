@@ -11,8 +11,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // The YouTube extractor (NewPipeExtractor) is published through JitPack
-        maven("https://jitpack.io")
     }
 }
 

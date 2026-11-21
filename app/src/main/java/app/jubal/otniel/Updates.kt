@@ -23,13 +23,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
-/** Something that was just added to the site or the channel. */
+/** Something that was just added to the site. */
 data class NewItem(val key: String, val kind: String, val title: String, val link: String)
 
 /**
- * Finds what is new on otniel.org and on the yeshiva's YouTube channel, and tells about it.
+ * Finds what is new on otniel.org (a lesson, a video series, a podcast) and tells about it.
  * Android lets an app look in the background at most every 15 minutes; while the app is
- * open it looks every two minutes, and every list is fresh from the site when opened.
+ * open it looks every two minutes. The pages themselves always come fresh from the site.
  */
 object Updates {
     const val CHANNEL = "new_content"
@@ -40,7 +40,7 @@ object Updates {
         if (Build.VERSION.SDK_INT < 26) return
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         val channel = NotificationChannel(CHANNEL, "תוכן חדש באתר", NotificationManager.IMPORTANCE_DEFAULT).apply {
-            description = "שיעור, סרטון, סדרה או פודקאסט חדשים מישיבת עתניאל"
+            description = "שיעור, סדרה או פודקאסט חדשים באתר הישיבה"
         }
         manager.createNotificationChannel(channel)
     }
@@ -58,7 +58,6 @@ object Updates {
      */
     fun check(context: Context, notify: Boolean): List<NewItem> {
         val found = ArrayList<NewItem>()
-        val coveredVideos = HashSet<String>()
 
         runCatching {
             val lessons = Site.newestLessons(8)
@@ -68,26 +67,9 @@ object Updates {
                 for (l in lessons.filter { it.id > last }.sortedBy { it.id }) {
                     val who = Site.rabbiNames(l.rabbis)
                     found += NewItem("l:${l.id}", "שיעור חדש", if (who.isEmpty()) l.title else "${l.title} · $who", l.link)
-                    runCatching { Site.lessonMedia(l.link).youtubeId }.getOrNull()?.takeIf { it.isNotEmpty() }?.let { coveredVideos += it }
                 }
             }
             if (newest > last) Store.setLastLessonId(newest)
-        }
-
-        runCatching {
-            val videos = YouTube.rss()
-            if (videos.isNotEmpty()) {
-                if (Store.hasSeen("videos")) {
-                    val seen = Store.seen("videos")
-                    for (v in videos.filter { it.id !in seen }.reversed()) {
-                        if (v.id in coveredVideos) continue
-                        found += NewItem("v:${v.id}", "סרטון חדש בערוץ", v.title, YouTube.watchUrl(v.id))
-                    }
-                    Store.setSeen("videos", seen + videos.map { it.id })
-                } else {
-                    Store.setSeen("videos", videos.map { it.id }.toSet())
-                }
-            }
         }
 
         if (System.currentTimeMillis() - Store.lastPagesCheck() > PAGES_EVERY_MS) {
@@ -97,7 +79,7 @@ object Updates {
                     if (Store.hasSeen("series")) {
                         val seen = Store.seen("series")
                         series.filter { it.key !in seen }.forEach {
-                            found += NewItem("s:${it.key}", "סדרה חדשה", it.title, it.playlistUrl.ifBlank { "https://otniel.org/all-vid-series/" })
+                            found += NewItem("s:${it.key}", "סדרה חדשה", it.title, "https://otniel.org/all-vid-series/")
                         }
                     }
                     Store.setSeen("series", series.map { it.key }.toSet())
@@ -118,7 +100,7 @@ object Updates {
             Store.setLastPagesCheck(System.currentTimeMillis())
         }
 
-        if (notify && Store.notifications()) show(context, found)
+        if (notify) show(context, found)
         return found
     }
 

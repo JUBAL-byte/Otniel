@@ -39,7 +39,7 @@ class ParserTest {
         assertEquals("הרב רא\"ם הכהן", first.subtitle)
         assertEquals(80, first.count)
         assertEquals("שיעור כללי ועיון", first.category)
-        assertEquals("PL1ZOExsgbKmVs0dhQfDa4RtTTJvNgZ2Y7", Links.youtubePlaylist(first.playlistUrl))
+        assertTrue(first.playlistUrl.endsWith("list=PL1ZOExsgbKmVs0dhQfDa4RtTTJvNgZ2Y7"))
         assertTrue(first.image.endsWith("IMG_0974Min.webp"))
         assertEquals("", list[1].playlistUrl)
         assertEquals(10, list[1].count)
@@ -70,8 +70,8 @@ class ParserTest {
         assertEquals("יהדות ומדיטציה", list[0].title)
         assertEquals("הרב איל אלפיה", list[0].presenter)
         assertEquals("https://open.spotify.com/show/2ewWKhdiyctZT93egnnA1y", list[0].spotify)
-        assertEquals(1654390049L, Links.appleId(list[0].apple))
-        assertEquals("PL1ZOExsgbKmXjBV_iJ6CN9D0WwJg-K84X", Links.youtubePlaylist(list[0].youtube))
+        assertTrue(list[0].apple.contains("id1654390049"))
+        assertTrue(list[0].youtube.contains("list=PL1ZOExsgbKmXjBV_iJ6CN9D0WwJg-K84X"))
         assertEquals("https://otniel.org/wp-content/uploads/2026/01/a.webp", list[0].image)
         assertEquals("", list[1].title)
         assertEquals("", list[1].apple)
@@ -158,62 +158,48 @@ class ParserTest {
     }
 
     @Test
-    fun links() {
-        assertEquals(Target.Video("rYDzoIPBT6M", 74), Links.target("https://www.youtube.com/watch?v=rYDzoIPBT6M&amp;t=74"))
-        assertEquals(Target.Video("rYDzoIPBT6M", 74), Links.target("https://youtu.be/rYDzoIPBT6M?t=1m14s"))
-        assertEquals("JBoALZVdu4E", Links.youtubeId("https:\\/\\/www.youtube.com\\/watch?v=JBoALZVdu4E"))
-        assertTrue(Links.target("https://www.youtube.com/playlist?list=PL1ZOExsgbKmVs0dhQfDa4RtTTJvNgZ2Y7") is Target.Playlist)
-        assertEquals(
-            Target.LessonSlug("שיעור-כללי"),
-            Links.target("https://otniel.org/shiurim/%d7%a9%d7%99%d7%a2%d7%95%d7%a8-%d7%9b%d7%9c%d7%9c%d7%99/"),
-        )
-        assertEquals(Target.Topic("tanach"), Links.target("https://otniel.org/topics/tanach/"))
-        assertEquals(Target.Rabbi("harav-reem-hacohen"), Links.target("https://www.otniel.org/rabbis/harav-reem-hacohen/"))
-        assertEquals(Target.Tab(Links.TAB_PODCASTS), Links.target("https://otniel.org/all-podcasts/"))
-        assertEquals(Target.FaqList, Links.target("https://otniel.org/%d7%a9%d7%95%d7%aa/"))
-        assertEquals(Target.Home, Links.target("https://otniel.org/"))
-        assertTrue(Links.target("https://otniel.org/cart/") is Target.Browser)
-        assertTrue(Links.target("https://otniel.org/?add-to-cart=211") is Target.Browser)
-        assertTrue(Links.target("https://otniel.org/wp-content/uploads/2026/11/a.pdf") is Target.Pdf)
-        assertTrue(Links.target("https://otniel.org/wp-content/uploads/2026/11/a.webm") is Target.Media)
-        assertTrue(Links.target("https://lp.vp4.me/syin") is Target.External)
-        assertTrue(Links.target("tel:029964241") is Target.Phone)
-        assertEquals(Target.Product("x"), Links.target("https://otniel.org/product/x/"))
-        assertTrue(Links.target("/about/") is Target.About)
+    fun routes() {
+        // The site's own pages stay in the app (always as https)
+        assertEquals(Route.Site("https://otniel.org/"), Routes.of("https://otniel.org/"))
+        assertEquals(Route.Site("https://otniel.org/all-lessons/"), Routes.of("http://otniel.org/all-lessons/"))
+        assertEquals(Route.Site("https://otniel.org/about/"), Routes.of("/about/"))
+        val lesson = "https://otniel.org/shiurim/%d7%a9%d7%99%d7%a2%d7%95%d7%a8-%d7%9b%d7%9c%d7%9c%d7%99/"
+        assertEquals(Route.Site(lesson), Routes.of(lesson))
+        assertTrue(Routes.of("https://www.otniel.org/rabbis/harav-reem-hacohen/") is Route.Site)
+        assertTrue(Routes.of("https://otniel.org/%d7%a9%d7%95%d7%aa/") is Route.Site)
+        assertTrue(Routes.of("https://vangus-cdn.com/otniel.org/wp-content/uploads/2026/02/x.webp") is Route.Site)
+
+        // Store, payment, account and donations: only in the phone's browser
+        assertTrue(Routes.of("https://otniel.org/bookstore/") is Route.Store)
+        assertTrue(Routes.of("https://otniel.org/product/x/") is Route.Store)
+        assertTrue(Routes.of("https://otniel.org/cart/") is Route.Store)
+        assertTrue(Routes.of("https://otniel.org/checkout/") is Route.Store)
+        assertTrue(Routes.of("https://www.otniel.org/my-account/") is Route.Store)
+        assertTrue(Routes.of("https://otniel.org/donations/") is Route.Store)
+        assertTrue(Routes.of("https://otniel.org/?add-to-cart=211") is Route.Store)
+        assertTrue(Routes.of("https://otniel.org/wp-login.php") is Route.Store)
+
+        // Everything else leaves the app
+        assertEquals(Route.Pdf("https://otniel.org/wp-content/uploads/2026/11/a.pdf"), Routes.of("http://otniel.org/wp-content/uploads/2026/11/a.pdf"))
+        assertTrue(Routes.of("https://www.youtube.com/watch?v=rYDzoIPBT6M") is Route.External)
+        assertTrue(Routes.of("https://lp.vp4.me/syin") is Route.External)
+        assertTrue(Routes.of("https://otniel.org.evil.example/") is Route.External)
+        assertTrue(Routes.of("https://evil.example/?u=https://otniel.org/") is Route.External)
+        assertTrue(Routes.of("https://otniel.org@evil.example/") is Route.External)
+        assertTrue(Routes.of("https://evil.example\\@otniel.org/") is Route.External)
+        assertTrue(Routes.of("tel:029964241") is Route.Phone)
+        assertTrue(Routes.of("mailto:office@otniel.org") is Route.Mail)
+        assertTrue(Routes.of("whatsapp://send?text=x") is Route.App)
+        assertTrue(Routes.of("intent://x#Intent;scheme=y;end") is Route.App)
+        assertEquals(Route.None, Routes.of("javascript:void(0)"))
+        assertEquals(Route.None, Routes.of("about:blank"))
+        assertEquals(Route.None, Routes.of("file:///sdcard/a.html"))
     }
 
     @Test
-    fun blocks() {
-        val html = """
-            <h2>כותרת</h2><p>פסקה עם <a href="https://www.youtube.com/watch?v=rYDzoIPBT6M&amp;t=74">קישור</a> ו<strong>הדגשה</strong></p>
-            <figure class="wp-block-image"><img src="https://vangus-cdn.com/a.webp" alt="תמונה"></figure>
-            <figure class="wp-block-video"><video src="https://otniel.org/wp-content/uploads/2026/11/t.webm" controls></video></figure>
-            <div class="wp-block-file"><object class="wp-block-file__embed" data="https://otniel.org/x/a.pdf" type="application/pdf"></object>
-              <a href="https://otniel.org/x/a.pdf">שיעור 01</a><a class="wp-block-file__button" href="https://otniel.org/x/a.pdf" download>הורדה</a></div>
-            <ul><li>אחד</li><li>שניים</li></ul><blockquote><p>ציטוט</p></blockquote>
-            <iframe src="https://www.youtube.com/embed/JBoALZVdu4E?start=30"></iframe>
-        """.trimIndent()
-        val b = Blocks.parse(html)
-        assertEquals(Block.Text("כותרת", Block.HEADING), b[0])
-        assertTrue((b[1] as Block.Text).html.contains("<a href="))
-        assertEquals(Block.Image("https://vangus-cdn.com/a.webp", "תמונה"), b[2])
-        assertEquals(Block.Video("https://otniel.org/wp-content/uploads/2026/11/t.webm"), b[3])
-        assertEquals(Block.File("https://otniel.org/x/a.pdf", "שיעור 01"), b[4])
-        assertEquals(Block.Text("אחד", Block.BULLET), b[5])
-        assertEquals(Block.Text("שניים", Block.BULLET), b[6])
-        assertEquals(Block.Text("ציטוט", Block.QUOTE), b[7])
-        assertEquals(Block.YouTube("JBoALZVdu4E", 30), b[8])
-        assertEquals(9, b.size)
-    }
-
-    @Test
-    fun hebrewNumbers() {
-        assertEquals("כ״א", Hebrew.number(21))
-        assertEquals("ט״ו", Hebrew.number(15))
-        assertEquals("ט״ז", Hebrew.number(16))
-        assertEquals("א׳", Hebrew.number(1))
-        assertEquals("תשפ״ז", Hebrew.number(5787))
-        assertEquals("ל׳", Hebrew.number(30))
-        assertEquals("כ״א בכסלו תשפ״ז", Hebrew.date(21, 2, 5787, false))
+    fun sharedText() {
+        assertEquals("https://otniel.org/all-podcasts/", Routes.siteLinkIn("שמעתם? otniel.org/all-podcasts/ מומלץ!"))
+        assertEquals("https://www.otniel.org/shiurim/a/", Routes.siteLinkIn("http://www.otniel.org/shiurim/a/."))
+        assertEquals(null, Routes.siteLinkIn("https://www.youtube.com/watch?v=rYDzoIPBT6M"))
     }
 }

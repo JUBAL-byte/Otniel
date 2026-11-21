@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.jubal.otniel",
+      "sha256_cert_fingerprints": [
+        "2D:5D:00:CC:FA:B7:E3:96:A6:B9:11:6C:CC:EC:84:B7:6F:74:57:94:FE:79:E6:73:AD:F5:D8:AB:AE:1D:B4:5B"
+      ]
+    }
+  }
+]

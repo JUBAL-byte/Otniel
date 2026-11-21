@@ -7,11 +7,6 @@ plugins {
 
 val buildNumber = (System.getenv("VERSION_CODE") ?: "1").toInt()
 
-// The YouTube extractor version lives in extractor.version, so it can move to a newer
-// one (with YouTube fixes) without touching this file.
-val extractorVersion: String = System.getenv("EXTRACTOR_VERSION")?.trim()?.takeIf { it.isNotEmpty() }
-    ?: rootProject.file("extractor.version").readText().trim()
-
 android {
     namespace = "app.jubal.otniel"
     compileSdk = 35
@@ -85,13 +80,6 @@ kotlin {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 
-    implementation("com.github.TeamNewPipe:NewPipeExtractor:$extractorVersion")
-
-    implementation("androidx.media3:media3-exoplayer:1.5.1")
-    implementation("androidx.media3:media3-ui:1.5.1")
-    implementation("androidx.media3:media3-session:1.5.1")
-    implementation("com.google.guava:guava:33.3.1-android")
-
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.core:core-ktx:1.13.1")
@@ -103,9 +91,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jsoup:jsoup:1.18.1")
-    implementation("io.coil-kt:coil:2.7.0")
-    implementation("io.coil-kt:coil-svg:2.7.0")
-    implementation("com.caverock:androidsvg-aar:1.4")
 
     testImplementation("junit:junit:4.13.2")
 }

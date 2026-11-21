@@ -1,9 +1,9 @@
 name: Otniel APK
 
-# On every push to main: checks the site readers (also against the live otniel.org),
-# builds the signed APK and publishes it as a Release (otniel-app-<number>) that can be
-# downloaded straight onto the phone. Then it opens the app on an Android emulator and
-# keeps screenshots of the main screens in the "otniel-ci" pre-release.
+# On every push to main: checks the link rules and the "new content" readers (also against
+# the live otniel.org), builds the signed APK and publishes it as a Release
+# (otniel-app-<number>) that can be downloaded straight onto the phone. Then it opens the
+# app on an Android emulator and keeps screenshots in the "otniel-ci" pre-release.
 
 on:
   push:
@@ -32,7 +32,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Unit tests (site readers, offline)
+      - name: Unit tests (link rules and site readers, offline)
         run: |
           chmod +x gradlew
           set -o pipefail
@@ -84,8 +84,8 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "$APK"
           gh release create "otniel-app-${{ github.run_number }}" "$APK" \
             --target "${{ github.sha }}" \
-            --title "עתניאל ${{ github.run_number }}" \
-            --notes "יישומון לתכני ישיבת עתניאל. מתקינים את הקובץ $APK בטלפון (גם מעל גרסה קודמת)." \
+            --title "בית ועד הר חברון ${{ github.run_number }}" \
+            --notes "אתר ישיבת עתניאל ביישומון לטלפון. מתקינים את הקובץ $APK בטלפון (גם מעל גרסה קודמת)." \
             --latest
 
       - name: Keep the test results

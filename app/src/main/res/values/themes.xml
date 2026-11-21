@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Base.Theme.Otniel" parent="Theme.Material3.DayNight.NoActionBar">
+    <!-- Light, like the site: white bars with dark icons above and below it -->
+    <style name="Base.Theme.Otniel" parent="Theme.Material3.Light.NoActionBar">
         <item name="colorPrimary">@color/o_primary</item>
         <item name="colorOnPrimary">@color/o_on_primary</item>
         <item name="colorPrimaryContainer">@color/o_primary_container</item>
@@ -24,10 +25,10 @@
         <item name="colorSurfaceContainerHighest">@color/o_surface_container_highest</item>
         <item name="colorError">@color/o_error</item>
         <item name="colorOnError">@color/o_on_error</item>
-        <item name="android:windowBackground">@color/o_background</item>
-        <item name="android:statusBarColor">@color/o_bar</item>
-        <item name="android:navigationBarColor">@color/o_bar</item>
-        <item name="android:windowLightStatusBar">@bool/o_light_bars</item>
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:navigationBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
         <item name="android:fontFamily">@font/heebo</item>
         <item name="fontFamily">@font/heebo</item>
     </style>

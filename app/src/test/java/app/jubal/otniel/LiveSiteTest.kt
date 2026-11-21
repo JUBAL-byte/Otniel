@@ -39,7 +39,7 @@ class LiveSiteTest {
         val series = SiteParse.series(get("https://otniel.org/all-vid-series/"))
         println("series: ${series.size}; first: ${series.firstOrNull()}")
         assertTrue(series.size >= 20)
-        assertTrue(series.count { Links.youtubePlaylist(it.playlistUrl) != null } >= 20)
+        assertTrue(series.count { it.playlistUrl.contains("list=") } >= 20)
         assertTrue(series.count { it.count > 0 } >= 20)
     }
 
@@ -83,8 +83,7 @@ class LiveSiteTest {
     fun aboutPage() {
         live()
         val page = SiteParse.page(get("https://otniel.org/wp-json/wp/v2/pages?slug=about&_fields=title,content,link"))
-        val blocks = Blocks.parse(page?.html ?: "")
-        println("about: ${page?.title}; blocks: ${blocks.size}")
-        assertTrue(blocks.size >= 3)
+        println("about: ${page?.title}; ${page?.html?.length} characters")
+        assertTrue((page?.html ?: "").length > 200)
     }
 }

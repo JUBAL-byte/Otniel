@@ -13,7 +13,7 @@ import java.io.File
 import java.io.IOException
 
 /**
- * Finds a newer build of this app on GitHub (for example one with YouTube fixes) and
+ * Finds a newer build of this app on GitHub and
  * installs it over the current one with one tap (same key, so nothing saved is lost).
  * It talks only to the GitHub API and never opens a browser.
  */
