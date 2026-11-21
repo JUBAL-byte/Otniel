@@ -2,10 +2,8 @@ package app.jubal.otniel
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -71,7 +69,7 @@ class PlayerPanel(private val act: MainActivity, val playable: Playable, poster:
             imageTintList = android.content.res.ColorStateList.valueOf(Color.WHITE)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(0xCC1F5C57.toInt())
+                setColor(act.color(R.color.o_cyan))
             }
             setPadding(act.dp(14), act.dp(14), act.dp(14), act.dp(14))
         }
@@ -152,6 +150,7 @@ class PlayerScreen(act: MainActivity) : Screen(act), PlayerAware {
     override fun build(): View {
         val c = act
         val column = c.vertical()
+        column.setBackgroundColor(c.color(R.color.o_page))
         val frame = WideFrame(c).apply { setBackgroundColor(Color.BLACK) }
         frame.addView(playerView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         val full = ImageButton(c).apply {
@@ -168,7 +167,7 @@ class PlayerScreen(act: MainActivity) : Screen(act), PlayerAware {
 
         val info = c.vertical()
         info.setPadding(c.dp(16), c.dp(12), c.dp(16), c.dp(4))
-        titleText = c.text(18f, bold = true)
+        titleText = c.display(32f)
         subtitleText = c.text(14f, R.color.o_on_surface_variant)
         info.add(titleText)
         info.add(subtitleText, top = c.dp(2))
@@ -191,7 +190,7 @@ class PlayerScreen(act: MainActivity) : Screen(act), PlayerAware {
         }
         scroll.addView(buttons)
         info.add(scroll, top = c.dp(8))
-        queueHeader = c.text(15f, bold = true).apply { setPadding(0, c.dp(12), 0, 0) }
+        queueHeader = c.display(28f).apply { setPadding(0, c.dp(16), 0, 0) }
         info.add(queueHeader)
         column.add(info)
 
@@ -314,12 +313,13 @@ object BlockViews {
 
     fun textView(act: MainActivity, b: Block.Text): TextView {
         val (size, colorRes, bold) = when (b.style) {
-            Block.HEADING -> Triple(20f, R.color.o_on_surface, true)
-            Block.SUBHEADING -> Triple(17.5f, R.color.o_on_surface, true)
+            Block.HEADING -> Triple(30f, R.color.o_teal, true)
+            Block.SUBHEADING -> Triple(18f, R.color.o_text, true)
             Block.SMALL -> Triple(13f, R.color.o_on_surface_variant, false)
-            else -> Triple(16.5f, R.color.o_on_surface, false)
+            else -> Triple(17f, R.color.o_text, false)
         }
-        val t = act.text(size, colorRes, bold)
+        // Headings in the site's display letters, text in its plain letters
+        val t = if (b.style == Block.HEADING) act.display(size, colorRes) else act.text(size, colorRes, bold)
         t.setLineSpacing(0f, 1.25f)
         t.setTextIsSelectable(true)
         t.withoutWebActions()
@@ -327,48 +327,56 @@ object BlockViews {
         t.setHtml(html) { act.open(it) }
         when (b.style) {
             Block.QUOTE -> {
-                t.setTypeface(t.typeface, Typeface.ITALIC)
                 t.background = GradientDrawable().apply {
-                    cornerRadius = act.dp(10).toFloat()
-                    setColor(act.color(R.color.o_surface_container))
+                    cornerRadius = act.dp(14).toFloat()
+                    setColor(act.color(R.color.o_card))
                 }
-                t.setPadding(act.dp(14), act.dp(10), act.dp(14), act.dp(10))
+                t.setTextColor(act.color(R.color.o_teal))
+                t.setPadding(act.dp(16), act.dp(12), act.dp(16), act.dp(12))
             }
             Block.BULLET -> t.setPadding(act.dp(8), 0, 0, 0)
         }
         return t
     }
 
+    /** A white card with the site's round cyan mark (a video, a sound file, a document). */
     fun mediaCard(act: Context, label: String, icon: Int, onClick: () -> Unit): View {
         val row = act.horizontal()
         row.setPadding(act.dp(14), act.dp(12), act.dp(14), act.dp(12))
-        val ic = ImageView(act).apply {
-            setImageResource(icon)
-            imageTintList = android.content.res.ColorStateList.valueOf(act.color(R.color.o_primary))
-        }
-        row.addView(ic, LinearLayout.LayoutParams(act.dp(26), act.dp(26)).apply { marginEnd = act.dp(12) })
-        row.add(act.text(15.5f, R.color.o_primary, bold = true).apply {
+        row.addView(act.circleIcon(icon, 38), LinearLayout.LayoutParams(act.dp(38), act.dp(38)).apply { marginEnd = act.dp(12) })
+        row.add(act.text(16f, R.color.o_text, bold = true).apply {
             text = label
             maxLines = 2
             ellipsize = TextUtils.TruncateAt.END
         }, 0, weight = 1f)
-        row.clickable(14, R.color.o_primary_container) { onClick() }
+        row.add(ImageView(act).apply {
+            setImageResource(R.drawable.ic_arrow_left)
+            imageTintList = android.content.res.ColorStateList.valueOf(act.color(R.color.o_text))
+        }, act.dp(26), act.dp(26))
+        row.clickable(16, R.color.o_card) { onClick() }
         return row
     }
 
     /** A scrolling page with a padded column inside. */
     fun page(act: Context): Pair<NestedScrollView, LinearLayout> {
-        val scroll = NestedScrollView(act).apply { isFillViewport = true }
+        val scroll = NestedScrollView(act).apply {
+            isFillViewport = true
+            setBackgroundColor(act.color(R.color.o_page))
+        }
         val col = act.vertical()
         col.setPadding(act.dp(16), act.dp(12), act.dp(16), act.dp(32))
         scroll.addView(col, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         return scroll to col
     }
 
-    fun title(act: Context, text: String): TextView = act.text(21f, bold = true).apply {
+    /** A page title in the site's large condensed letters. */
+    fun title(act: Context, text: String, centered: Boolean = false): TextView = act.display(if (text.length > 60) 34f else 42f).apply {
         this.text = text
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 21f)
-        setLineSpacing(0f, 1.15f)
+        setLineSpacing(0f, 0.92f)
+        if (centered) {
+            gravity = Gravity.CENTER
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+        }
         setTextIsSelectable(true)
         withoutWebActions()
     }

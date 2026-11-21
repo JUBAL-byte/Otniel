@@ -20,29 +20,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 
-/** The fifth tab: everything else on the site, and the app's settings. */
-class MoreScreen(act: MainActivity) : ListScreen(act) {
-    override val title = "עוד"
-
-    override fun load(force: Boolean) {
-        doneRefreshing()
-        val rows = ArrayList<Row>()
-        rows += HeaderRow("באתר הישיבה")
-        rows += EntryRow("שו\"ת", "שאלות ותשובות מרבני הישיבה", icon = R.drawable.ic_description) { act.push(FaqListScreen(act)) }
-        rows += EntryRow("רבני הישיבה", "השיעורים של כל רב", icon = R.drawable.ic_person) { act.push(RabbisScreen(act)) }
-        rows += EntryRow("חנות הספרים", "ספרי הישיבה וסדרות שיעורים", icon = R.drawable.ic_book) { act.push(StoreScreen(act)) }
-        rows += EntryRow("על הישיבה", icon = R.drawable.ic_info) { act.push(PageScreen(act, "about", "על הישיבה")) }
-        rows += EntryRow("צור קשר", icon = R.drawable.ic_phone) { act.push(PageScreen(act, "contact", "צור קשר", contact = true)) }
-        rows += EntryRow("תרומה לישיבה", "נפתח בדפדפן של הטלפון", icon = R.drawable.ic_open_in_new) {
-            act.confirmBrowser("https://otniel.org/donations/", "התרומה נעשית באתר הישיבה, בדפדפן של הטלפון ולא בתוך היישומון.")
-        }
-        rows += HeaderRow("היישומון")
-        rows += EntryRow("הגדרות", "מראה, גודל, תמונות, התראות", icon = R.drawable.ic_settings) { act.push(SettingsScreen(act)) }
-        rows += EntryRow("פתיחת קישורים של האתר ביישומון", "קישור ל־otniel.org ייפתח כאן", icon = R.drawable.ic_link) { act.openLinkSettings() }
-        show(rows)
-    }
-}
-
 class FaqListScreen(act: MainActivity) : ListScreen(act) {
     override val title = "שו\"ת"
     private val items = ArrayList<Faq>()
@@ -84,8 +61,9 @@ class FaqListScreen(act: MainActivity) : ListScreen(act) {
 
     private fun render() {
         val rows = ArrayList<Row>()
+        rows += PageTitleRow("שו\"ת")
         for (f in items) {
-            rows += EntryRow(f.title, Site.rabbiNames(f.rabbis), Dates.short(f.date), icon = R.drawable.ic_description) {
+            rows += LessonCardRow(f.title, Site.rabbiNames(f.rabbis), Dates.site(f.date), icon = R.drawable.ic_description) {
                 act.push(FaqScreen(act, faq = f))
             }
         }
@@ -126,11 +104,20 @@ class FaqScreen(act: MainActivity, private var faq: Faq? = null, private val slu
             r.onSuccess { (f, answer) ->
                 faq = f
                 val c = act
-                column.add(BlockViews.title(c, f.title))
+                column.add(c.text(15f, R.color.o_teal, bold = true).apply {
+                    text = "שו\"ת"
+                    gravity = android.view.Gravity.CENTER
+                    textAlignment = View.TEXT_ALIGNMENT_CENTER
+                }, top = c.dp(20))
+                column.add(BlockViews.title(c, f.title, centered = true), top = c.dp(6))
                 val meta = listOf(Site.rabbiNames(f.rabbis), Dates.full(f.date)).filter { it.isNotBlank() }.joinToString(" · ")
-                if (meta.isNotBlank()) column.add(c.text(14f, R.color.o_on_surface_variant).apply { text = meta }, top = c.dp(4))
+                if (meta.isNotBlank()) column.add(c.text(14.5f, bold = true).apply {
+                    text = meta
+                    gravity = android.view.Gravity.CENTER
+                    textAlignment = View.TEXT_ALIGNMENT_CENTER
+                }, top = c.dp(10))
                 if (answer.question.isNotBlank()) {
-                    column.add(c.text(17f, R.color.o_primary, bold = true).apply { text = "שאלה" }, top = c.dp(18))
+                    column.add(c.display(34f, R.color.o_teal).apply { text = "שאלה:" }, top = c.dp(22))
                     column.add(c.text(16.5f).apply {
                         text = answer.question
                         setLineSpacing(0f, 1.25f)
@@ -138,7 +125,7 @@ class FaqScreen(act: MainActivity, private var faq: Faq? = null, private val slu
                         withoutWebActions()
                     }, top = c.dp(4))
                 }
-                column.add(c.text(17f, R.color.o_primary, bold = true).apply { text = "תשובה" }, top = c.dp(18))
+                column.add(c.display(34f, R.color.o_teal).apply { text = "תשובה:" }, top = c.dp(22))
                 val blocks = Blocks.parse(answer.answerHtml)
                 if (blocks.isEmpty()) {
                     column.add(c.text(15f, R.color.o_on_surface_variant).apply { text = "לא הצלחנו לקרוא את התשובה מהאתר." }, top = c.dp(6))
@@ -161,7 +148,7 @@ class RabbisScreen(act: MainActivity) : ListScreen(act) {
         io({ Site.rabbis() }) { r ->
             doneRefreshing()
             r.onSuccess { list ->
-                show(list.filter { it.count > 0 }.sortedBy { it.name.removePrefix("הרב ").removePrefix("ד\"ר ").removePrefix("פרופ' ") }.map { t ->
+                show(listOf<Row>(PageTitleRow("רבני הישיבה")) + list.filter { it.count > 0 }.sortedBy { it.name.removePrefix("הרב ").removePrefix("ד\"ר ").removePrefix("פרופ' ") }.map { t ->
                     EntryRow(t.name, meta = "${t.count} שיעורים", icon = R.drawable.ic_person) {
                         act.push(LessonsScreen(act, Site.Query(rabbi = t.id), t.name, isRoot = false, searchBox = false))
                     }
@@ -191,6 +178,7 @@ class PageScreen(
 
     private fun load() {
         column.removeAllViews()
+        if (name.isNotBlank()) column.add(BlockViews.title(act, name), top = act.dp(18), bottom = act.dp(10))
         if (contact) contactButtons()
         val loading = LoadingRow.create(column).also { LoadingRow.bind(it) }
         column.add(loading)
@@ -200,6 +188,9 @@ class PageScreen(
             if (page != null) {
                 if (name.isBlank()) {
                     name = page.title
+                    column.addView(BlockViews.title(act, name), 0, android.widget.LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply { topMargin = act.dp(18); bottomMargin = act.dp(10) })
                     act.refreshBar()
                 }
                 val blocks = Blocks.parse(page.html)
@@ -231,16 +222,11 @@ class StoreScreen(act: MainActivity) : ListScreen(act) {
             doneRefreshing()
             r.onSuccess { books ->
                 val rows = ArrayList<Row>()
-                rows += MessageRow("את הספרים אפשר לראות כאן. הרכישה עצמה נעשית באתר הישיבה, בדף התשלום המאובטח שלו, בדפדפן של הטלפון.")
+                rows += PageTitleRow("חנות ספרים")
+                rows += MessageRow("הרכישה עצמה נעשית באתר הישיבה, בדף התשלום המאובטח שלו, בדפדפן של הטלפון.")
                 books.forEach { b ->
-                    rows += EntryRow(
-                        b.name,
-                        price(b),
-                        meta = if (!b.inStock) "אזל מהמלאי" else "",
-                        icon = R.drawable.ic_book,
-                        image = b.images.firstOrNull(),
-                        wide = false,
-                    ) { act.push(BookScreen(act, book = b)) }
+                    val sub = price(b) + if (!b.inStock) " · אזל מהמלאי" else ""
+                    rows += CoverCardRow(b.name, sub, b.images.firstOrNull()) { act.push(BookScreen(act, book = b)) }
                 }
                 if (books.isEmpty()) rows += MessageRow("אין כרגע ספרים בחנות.")
                 show(rows)
@@ -306,8 +292,12 @@ class BookScreen(act: MainActivity, private var book: Book? = null, private val 
             scroll.addView(strip)
             column.add(scroll, bottom = c.dp(10))
         }
-        column.add(BlockViews.title(c, b.name))
-        column.add(c.text(18f, R.color.o_primary, bold = true).apply { text = StoreScreen.price(b) }, top = c.dp(6))
+        column.add(BlockViews.title(c, b.name, centered = true), top = c.dp(8))
+        column.add(c.text(19f, R.color.o_teal, bold = true).apply {
+            text = StoreScreen.price(b)
+            gravity = android.view.Gravity.CENTER
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+        }, top = c.dp(6))
         if (!b.inStock) column.add(c.text(14f, R.color.o_error).apply { text = "אזל מהמלאי כרגע" }, top = c.dp(4))
 
         if (b.purchasable && b.inStock) {
@@ -456,6 +446,7 @@ class SettingsScreen(act: MainActivity) : ListScreen(act) {
 
     private fun render() {
         val rows = ArrayList<Row>()
+        rows += PageTitleRow("הגדרות")
         rows += HeaderRow("תצוגה")
         rows += EntryRow("מראה", Settings.themeLabel(act), icon = R.drawable.ic_dark_mode) {
             val idx = Settings.THEMES.indexOfFirst { it.first == Settings.theme(act) }

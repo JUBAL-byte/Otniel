@@ -30,7 +30,8 @@ class SeriesScreen(act: MainActivity) : ListScreen(act) {
 
     private fun render() {
         val rows = ArrayList<Row>()
-        rows += SearchRow("חיפוש סדרה", filter) {
+        rows += PageTitleRow("סדרות שיעורים מוסרטים")
+        rows += SearchRow("חפש סדרה...", filter) {
             filter = it
             render()
         }
@@ -47,11 +48,9 @@ class SeriesScreen(act: MainActivity) : ListScreen(act) {
                 (filter.isEmpty() || it.title.contains(filter) || it.subtitle.contains(filter))
         }
         for (s in shown) {
-            rows += EntryRow(
+            rows += PictureCardRow(
                 s.title,
-                s.subtitle,
-                meta = listOf(if (s.count > 0) "${s.count} שיעורים" else "", s.category).filter { it.isNotBlank() }.joinToString(" · "),
-                icon = R.drawable.ic_playlist_play,
+                meta = listOf(s.subtitle, if (s.count > 0) "${s.count} שיעורים" else "", s.category).filter { it.isNotBlank() }.joinToString(" · "),
                 image = s.image,
                 key = s.key,
             ) {
@@ -109,18 +108,17 @@ class PlaylistScreen(
 
     private fun render() {
         val rows = ArrayList<Row>()
+        rows += PageTitleRow(name.ifBlank { "סדרה" }, if (videos.isNotEmpty()) "${videos.size} ${if (audioOnly) "פרקים" else "שיעורים"}" else "")
         if (videos.isNotEmpty()) {
-            rows += HeaderRow("${videos.size} ${if (audioOnly) "פרקים" else "סרטונים"}", "נגן הכול") { act.playNow(playables(), 0) }
+            rows += PillRow("▶  נגן הכול") { act.playNow(playables(), 0) }
             val items = playables()
             videos.forEachIndexed { i, v ->
                 val p = Store.recent().firstOrNull { it.item.id == "yt:${v.id}" }
-                rows += EntryRow(
-                    v.title,
-                    meta = Dates.duration(v.durationSec),
-                    icon = if (audioOnly) R.drawable.ic_graphic_eq else R.drawable.ic_smart_display,
-                    image = if (audioOnly) null else YouTube.thumbnail(v.id),
-                    progress = p?.percent ?: -1,
-                ) { act.playNow(items, i) }
+                rows += if (audioOnly) {
+                    LessonCardRow(v.title, "", Dates.duration(v.durationSec), icon = R.drawable.ic_graphic_eq, progress = p?.percent ?: -1) { act.playNow(items, i) }
+                } else {
+                    PictureCardRow(v.title, Dates.duration(v.durationSec), YouTube.thumbnail(v.id), progress = p?.percent ?: -1) { act.playNow(items, i) }
+                }
             }
         }
         when {
@@ -172,20 +170,10 @@ class PodcastsScreen(act: MainActivity) : ListScreen(act) {
 
     private fun render() {
         val rows = ArrayList<Row>()
+        rows += PageTitleRow("פודקאסטים")
         for (s in shows) {
             val n = nameOf(s)
-            rows += EntryRow(
-                n.ifBlank { "הסכת" },
-                s.presenter,
-                meta = listOfNotNull(
-                    if (s.apple.isNotBlank() || s.spotify.isNotBlank()) "פרקי שמע" else null,
-                    if (s.youtube.isNotBlank()) "גם ביוטיוב" else null,
-                ).joinToString(" · "),
-                icon = R.drawable.ic_podcasts,
-                image = s.image,
-                wide = false,
-                key = s.key,
-            ) { act.push(ShowScreen(act, s, n)) }
+            rows += CoverCardRow(n.ifBlank { "פודקאסט" }, s.presenter, s.image, key = s.key) { act.push(ShowScreen(act, s, n)) }
         }
         when {
             shows.isEmpty() && loading -> rows += LoadingRow
@@ -230,25 +218,28 @@ class ShowScreen(act: MainActivity, private val show: Show, private var name: St
         val rows = ArrayList<Row>()
         val c = content
         val feed = c?.feed
+        rows += PageTitleRow(name.ifBlank { "פודקאסט" }, show.presenter)
         if (feed != null) {
             val items = feed.episodes.map { Playable.file(it.audioUrl, it.title, name, "", video = it.isVideo) }
-            rows += HeaderRow("${feed.episodes.size} פרקים", "נגן מהחדש") { act.playNow(items, 0) }
+            rows += PillRow("▶  נגן מהפרק החדש") { act.playNow(items, 0) }
             feed.episodes.forEachIndexed { i, e ->
                 val p = Store.recent().firstOrNull { it.item.id == items[i].id }
-                rows += EntryRow(
+                rows += LessonCardRow(
                     e.title,
-                    meta = listOf(Dates.hebrew(e.date), Dates.duration(e.durationSec)).filter { it.isNotBlank() }.joinToString(" · "),
+                    Dates.hebrew(e.date),
+                    Dates.duration(e.durationSec),
                     icon = R.drawable.ic_graphic_eq,
                     progress = p?.percent ?: -1,
                 ) { act.playNow(items, i) }
             }
         } else if (c != null && c.videos.isNotEmpty()) {
             val items = c.videos.map { Playable.youtube(it.id, it.title, name, show.youtube).copy(video = false) }
-            rows += HeaderRow("${c.videos.size} פרקים", "נגן הכול") { act.playNow(items, 0) }
+            rows += PillRow("▶  נגן הכול") { act.playNow(items, 0) }
             c.videos.forEachIndexed { i, v ->
-                rows += EntryRow(
+                rows += LessonCardRow(
                     v.title,
-                    meta = Dates.duration(v.durationSec),
+                    "",
+                    Dates.duration(v.durationSec),
                     icon = R.drawable.ic_graphic_eq,
                     progress = Store.recent().firstOrNull { it.item.id == items[i].id }?.percent ?: -1,
                 ) { act.playNow(items, i) }

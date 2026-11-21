@@ -81,6 +81,7 @@ class ParserTest {
         <html><body><header data-elementor-type="header"><div class="elementor-widget-video" data-settings="{&quot;youtube_url&quot;:&quot;https:\/\/www.youtube.com\/watch?v=HEADERxxxxx&quot;}"></div></header>
         <div data-elementor-type="single-post" data-elementor-id="6464">
           <div class="elementor-widget-theme-post-title"><h1>שיעור כללי</h1></div>
+          <div class="elementor-element elementor-widget elementor-widget-image"><img src="https://vangus-cdn.com/otniel.org/wp-content/uploads/2026/01/harav-reem-hacohen.webp"></div>
           <div class="elementor-element elementor-widget elementor-widget-video" data-settings="{&quot;youtube_url&quot;:&quot;https:\/\/www.youtube.com\/watch?v=JBoALZVdu4E&quot;,&quot;video_type&quot;:&quot;youtube&quot;,&quot;controls&quot;:&quot;yes&quot;}" data-widget_type="video.default"></div>
           <div class="jet-listing-grid"><div class="jet-listing-grid__item"><div class="elementor-widget-video" data-settings="{&quot;youtube_url&quot;:&quot;https:\/\/youtu.be\/OTHERxxxxxx&quot;}"></div></div></div>
         </div></body></html>
@@ -89,6 +90,7 @@ class ParserTest {
     @Test
     fun lessonVideo() {
         assertEquals("JBoALZVdu4E", SiteParse.lessonMedia(lessonPage).youtubeId)
+        assertTrue(SiteParse.lessonMedia(lessonPage).rabbiImage.endsWith("harav-reem-hacohen.webp"))
         val hosted = """<div data-elementor-type="single-post"><div class="elementor-widget-video" data-settings="{&quot;video_type&quot;:&quot;hosted&quot;,&quot;hosted_url&quot;:{&quot;url&quot;:&quot;https:\/\/otniel.org\/wp-content\/uploads\/2026\/11\/a.mp4&quot;,&quot;id&quot;:5}}"></div></div>"""
         assertEquals("https://otniel.org/wp-content/uploads/2026/11/a.mp4", SiteParse.lessonMedia(hosted).hostedUrl)
         assertTrue(!SiteParse.lessonMedia("<div data-elementor-type=\"single-post\"><p>טקסט</p></div>").hasVideo)

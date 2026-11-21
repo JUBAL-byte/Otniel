@@ -25,7 +25,8 @@ data class Lesson(
 )
 
 /** The video a lesson page plays (the site keeps it outside the lesson text). */
-data class LessonMedia(val youtubeId: String = "", val hostedUrl: String = "") {
+/** [rabbiImage] is the teacher's photo the page shows next to his name. */
+data class LessonMedia(val youtubeId: String = "", val hostedUrl: String = "", val rabbiImage: String = "") {
     val hasVideo: Boolean get() = youtubeId.isNotEmpty() || hostedUrl.isNotEmpty()
 }
 

@@ -27,8 +27,9 @@ class LiveSiteTest {
         val lessons = SiteParse.lessons(get("https://otniel.org/wp-json/wp/v2/shiurim?per_page=15&_fields=id,date,link,slug,title,excerpt,rabbis,topics,featured_media"))
         println("lessons: ${lessons.size}; newest: ${lessons.firstOrNull()?.title}")
         assertTrue(lessons.size >= 10)
-        val withVideo = lessons.take(10).count { SiteParse.lessonMedia(get(it.link)).hasVideo }
-        println("lessons with a video among the newest 10: $withVideo")
+        val media = lessons.take(10).map { SiteParse.lessonMedia(get(it.link)) }
+        val withVideo = media.count { it.hasVideo }
+        println("lessons with a video among the newest 10: $withVideo; with a teacher photo: ${media.count { it.rabbiImage.isNotBlank() }}; e.g. ${media.firstOrNull { it.rabbiImage.isNotBlank() }?.rabbiImage}")
         assertTrue(withVideo >= 1)
     }
 

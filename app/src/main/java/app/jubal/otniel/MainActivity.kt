@@ -17,6 +17,8 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.ScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -26,6 +28,7 @@ import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import coil.load
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
@@ -35,7 +38,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
@@ -50,25 +52,26 @@ class MainActivity : AppCompatActivity() {
         private const val POLL_MS = 2 * 60_000L
     }
 
-    private val stacks = Array(5) { ArrayList<Screen>() }
-    private var tab = Links.TAB_HOME
+    /** What is on screen, like the pages of a website: the home page at the bottom. */
+    private val stack = ArrayList<Screen>()
     private var shown: Screen? = null
 
     private lateinit var content: FrameLayout
-    private lateinit var titleView: TextView
-    private lateinit var backButton: ImageButton
     private lateinit var actionsBox: LinearLayout
-    private lateinit var nav: BottomNavigationView
+    private lateinit var pill: com.google.android.material.button.MaterialButton
     private lateinit var mini: LinearLayout
     private lateinit var miniTitle: TextView
     private lateinit var miniSubtitle: TextView
-    private lateinit var miniPlay: ImageButton
+    private lateinit var miniPlay: ImageView
     private lateinit var fullscreen: FrameLayout
     private lateinit var fullPlayer: PlayerView
+    private lateinit var drawer: FrameLayout
+    private lateinit var drawerPanel: LinearLayout
 
     private var activePlayerView: PlayerView? = null
     private var beforeFullscreen: PlayerView? = null
     private var isFullscreen = false
+    private var drawerOpen = false
 
     private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
@@ -116,8 +119,9 @@ class MainActivity : AppCompatActivity() {
             override fun handleOnBackPressed() = back()
         })
 
+        stack += HomeScreen(this)
         val handled = savedInstanceState == null && handleIntent(intent)
-        if (!handled) selectTab(Links.TAB_HOME)
+        if (!handled) display(stack.last())
 
         if (Build.VERSION.SDK_INT >= 33 && !Store.askedNotifications() &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -147,60 +151,67 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         Playback.removeListener(playerListener)
         activePlayerView?.player = null
-        stacks.forEach { s -> s.forEach { it.destroy() } }
+        stack.forEach { it.destroy() }
         super.onDestroy()
     }
 
-    // ------------------------------------------------------------------ layout
+    // ------------------------------------------------------------------ layout (the site's header, menu and pages)
 
     private fun buildLayout(): View {
         val root = FrameLayout(this)
         val main = vertical()
+        main.setBackgroundColor(color(R.color.o_page))
         root.addView(main, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 
-        // Top bar
+        // The site's header: menu, logo, and the light cyan button
         val bar = horizontal()
         bar.setBackgroundColor(color(R.color.o_bar))
-        bar.setPadding(dp(4), 0, dp(4), 0)
-        backButton = ImageButton(this).apply {
-            setImageResource(R.drawable.ic_arrow_back)
-            imageTintList = android.content.res.ColorStateList.valueOf(color(R.color.o_on_bar))
+        bar.elevation = dp(3).toFloat()
+        bar.setPadding(dp(6), 0, dp(12), 0)
+        val menuButton = ImageButton(this).apply {
+            setImageResource(R.drawable.ic_menu)
+            imageTintList = android.content.res.ColorStateList.valueOf(color(R.color.o_teal))
             background = pressable(24)
-            contentDescription = "חזרה"
-            setOnClickListener { back() }
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            contentDescription = "תפריט"
+            setOnClickListener { openDrawer() }
         }
-        bar.addView(backButton, LinearLayout.LayoutParams(dp(48), dp(48)))
-        titleView = text(18f, R.color.o_on_bar, bold = true).apply {
-            maxLines = 1
-            ellipsize = TextUtils.TruncateAt.END
-            setPadding(dp(8), 0, dp(8), 0)
-        }
-        bar.add(titleView, 0, weight = 1f)
+        bar.addView(menuButton, LinearLayout.LayoutParams(dp(52), dp(52)))
+        bar.add(logoView(), ViewGroup.LayoutParams.WRAP_CONTENT)
+        bar.add(View(this), 0, dp(1), weight = 1f)
         actionsBox = horizontal()
         bar.add(actionsBox, ViewGroup.LayoutParams.WRAP_CONTENT)
-        main.add(bar, height = dp(56))
+        pill = button("חיפוש") { onPill() }.apply {
+            cornerRadius = dp(22)
+            minHeight = dp(40)
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
+            setPadding(dp(16), 0, dp(16), 0)
+        }
+        bar.add(pill, ViewGroup.LayoutParams.WRAP_CONTENT)
+        main.add(bar, height = dp(64))
 
         content = FrameLayout(this)
         main.add(content, height = 0, weight = 1f)
 
-        // Mini player
+        // Mini player (white, with the site's cyan play mark)
         mini = horizontal()
-        mini.setBackgroundColor(color(R.color.o_surface_container_high))
-        mini.setPadding(dp(8), dp(4), dp(8), dp(4))
-        miniPlay = ImageButton(this).apply {
-            setImageResource(R.drawable.ic_play_arrow_fill)
-            imageTintList = android.content.res.ColorStateList.valueOf(color(R.color.o_primary))
-            background = pressable(24)
+        mini.setBackgroundColor(color(R.color.o_bar))
+        mini.elevation = dp(6).toFloat()
+        mini.setPadding(dp(12), dp(6), dp(8), dp(6))
+        miniPlay = circleIcon(R.drawable.ic_play_arrow_fill, 42).apply {
             contentDescription = "נגן או השהה"
+            isFocusable = true
+            isClickable = true
             setOnClickListener {
                 val c = Playback.controller ?: return@setOnClickListener
                 if (c.isPlaying) c.pause() else { if (c.playbackState == Player.STATE_IDLE) c.prepare(); c.play() }
             }
         }
-        mini.addView(miniPlay, LinearLayout.LayoutParams(dp(48), dp(48)))
+        mini.addView(miniPlay, LinearLayout.LayoutParams(dp(42), dp(42)))
         val miniTexts = vertical()
-        miniTexts.setPadding(dp(8), 0, dp(8), 0)
-        miniTitle = text(14.5f, bold = true).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END }
+        miniTexts.setPadding(dp(10), dp(2), dp(10), dp(2))
+        miniTitle = text(15f, bold = true).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END }
         miniSubtitle = text(12.5f, R.color.o_on_surface_variant).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END }
         miniTexts.add(miniTitle)
         miniTexts.add(miniSubtitle)
@@ -208,7 +219,7 @@ class MainActivity : AppCompatActivity() {
         miniTexts.clickable(8) { push(PlayerScreen(this)) }
         val miniClose = ImageButton(this).apply {
             setImageResource(R.drawable.ic_close)
-            imageTintList = android.content.res.ColorStateList.valueOf(color(R.color.o_on_surface_variant))
+            imageTintList = android.content.res.ColorStateList.valueOf(color(R.color.o_text))
             background = pressable(24)
             contentDescription = "סגור נגן"
             setOnClickListener {
@@ -220,21 +231,21 @@ class MainActivity : AppCompatActivity() {
         mini.visibility = View.GONE
         main.add(mini)
 
-        nav = BottomNavigationView(this).apply {
-            menu.add(0, R.id.nav_home, 0, "בית").setIcon(R.drawable.ic_home)
-            menu.add(0, R.id.nav_lessons, 1, "שיעורים").setIcon(R.drawable.ic_lesson)
-            menu.add(0, R.id.nav_series, 2, "סדרות").setIcon(R.drawable.ic_smart_display)
-            menu.add(0, R.id.nav_podcasts, 3, "הסכתים").setIcon(R.drawable.ic_podcasts)
-            menu.add(0, R.id.nav_more, 4, "עוד").setIcon(R.drawable.ic_menu)
-            labelVisibilityMode = com.google.android.material.navigation.NavigationBarView.LABEL_VISIBILITY_LABELED
-            setBackgroundColor(color(R.color.o_surface_container))
-            setOnItemSelectedListener { item ->
-                selectTab(tabOf(item.itemId))
-                true
-            }
-            setOnItemReselectedListener { item -> popToRoot(tabOf(item.itemId)) }
+        // The site's side menu
+        drawer = FrameLayout(this).apply {
+            visibility = View.GONE
+            setBackgroundColor(color(R.color.o_scrim))
+            isClickable = true
+            setOnClickListener { closeDrawer() }
         }
-        main.add(nav)
+        drawerPanel = vertical().apply {
+            setBackgroundColor(color(R.color.o_card))
+            isClickable = true
+        }
+        val panelWidth = minOf(dp(330), (resources.displayMetrics.widthPixels * 0.86f).toInt())
+        drawer.addView(drawerPanel, FrameLayout.LayoutParams(panelWidth, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.START))
+        root.addView(drawer, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        buildMenu()
 
         // Full screen video
         fullscreen = FrameLayout(this).apply {
@@ -261,73 +272,156 @@ class MainActivity : AppCompatActivity() {
         return root
     }
 
-    private fun tabOf(itemId: Int): Int = when (itemId) {
-        R.id.nav_lessons -> Links.TAB_LESSONS
-        R.id.nav_series -> Links.TAB_SERIES
-        R.id.nav_podcasts -> Links.TAB_PODCASTS
-        R.id.nav_more -> Links.TAB_MORE
-        else -> Links.TAB_HOME
-    }
-
-    private fun itemOf(tab: Int): Int = when (tab) {
-        Links.TAB_LESSONS -> R.id.nav_lessons
-        Links.TAB_SERIES -> R.id.nav_series
-        Links.TAB_PODCASTS -> R.id.nav_podcasts
-        Links.TAB_MORE -> R.id.nav_more
-        else -> R.id.nav_home
-    }
-
-    private fun rootScreen(tab: Int): Screen = when (tab) {
-        Links.TAB_LESSONS -> LessonsScreen(this, Site.Query(), "שיעורים", isRoot = true)
-        Links.TAB_SERIES -> SeriesScreen(this)
-        Links.TAB_PODCASTS -> PodcastsScreen(this)
-        Links.TAB_MORE -> MoreScreen(this)
-        else -> HomeScreen(this)
-    }
-
-    // ------------------------------------------------------------------ navigation
-
-    fun selectTab(t: Int) {
-        tab = t
-        if (stacks[t].isEmpty()) stacks[t] += rootScreen(t)
-        if (nav.selectedItemId != itemOf(t)) {
-            nav.setOnItemSelectedListener(null)
-            nav.selectedItemId = itemOf(t)
-            nav.setOnItemSelectedListener { item -> selectTab(tabOf(item.itemId)); true }
+    /** The site's logo (from the site itself), with its name in letters until it arrives. */
+    private fun logoView(): View {
+        val frame = FrameLayout(this)
+        val words = vertical().apply { gravity = Gravity.START or Gravity.CENTER_VERTICAL }
+        words.add(display(25f).apply { text = "ישיבת עתניאל" }, ViewGroup.LayoutParams.WRAP_CONTENT)
+        words.add(text(10.5f, bold = true).apply { text = "בית ועד הר חברון" }, ViewGroup.LayoutParams.WRAP_CONTENT)
+        frame.addView(words, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL))
+        val img = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.FIT_START
+            adjustViewBounds = true
+            contentDescription = "ישיבת עתניאל"
+            visibility = View.INVISIBLE
         }
-        display(stacks[t].last())
+        frame.addView(img, FrameLayout.LayoutParams(dp(132), dp(42), Gravity.CENTER_VERTICAL))
+        img.load(Site.LOGO) {
+            listener(onSuccess = { _, _ ->
+                img.visibility = View.VISIBLE
+                words.visibility = View.GONE
+            })
+        }
+        frame.clickable(10) { goHome() }
+        frame.setPadding(dp(6), dp(4), dp(6), dp(4))
+        return frame
     }
 
-    private fun popToRoot(t: Int) {
-        val s = stacks[t]
-        while (s.size > 1) s.removeAt(s.size - 1).destroy()
-        if (t == tab && s.isNotEmpty()) display(s.last())
+    private fun buildMenu() {
+        val panel = drawerPanel
+        panel.removeAllViews()
+        val top = horizontal()
+        top.setPadding(dp(8), dp(8), dp(8), dp(4))
+        top.add(ImageButton(this).apply {
+            setImageResource(R.drawable.ic_close)
+            imageTintList = android.content.res.ColorStateList.valueOf(color(R.color.o_teal))
+            background = pressable(24)
+            contentDescription = "סגירת התפריט"
+            setOnClickListener { closeDrawer() }
+        }, dp(48), dp(48))
+        panel.add(top)
+        val scroll = ScrollView(this)
+        val list = vertical()
+        list.setPadding(dp(22), 0, dp(22), dp(24))
+        scroll.addView(list)
+        panel.add(scroll, height = 0, weight = 1f)
+
+        fun section(title: String) {
+            list.add(display(30f, R.color.o_teal).apply { text = title }, top = dp(16), bottom = dp(2))
+        }
+        fun item(title: String, sub: Boolean = false, action: () -> Unit) {
+            val t = text(if (sub) 16f else 18.5f, bold = !sub).apply {
+                text = title
+                setPadding(dp(if (sub) 14 else 6), dp(if (sub) 8 else 11), dp(6), dp(if (sub) 8 else 11))
+            }
+            t.clickable(10) {
+                closeDrawer()
+                action()
+            }
+            list.add(t)
+        }
+        item("דף הבית") { goHome() }
+        section("על הישיבה")
+        item("על הישיבה") { go(PageScreen(this, "about", "על הישיבה")) }
+        item("רבני הישיבה") { go(RabbisScreen(this)) }
+        section("בית מדרש")
+        item("שיעורים") { selectTab(Links.TAB_LESSONS) }
+        for ((name, slug) in listOf(
+            "תנ\"ך" to "tanach", "הלכה" to "halacha", "מדרש, משנה ותלמוד" to "toshbah", "מעגל השנה" to "year-circle",
+            "חסידות וקבלה" to "kabala", "מחשבה" to "philosophy", "שונות" to "others", "ימי עיון ואירועים" to "iyun",
+            "דפי מקורות ללימוד עצמי" to "self-study-pages",
+        )) {
+            item(name, sub = true) { go(LessonsScreen.forTopicSlug(this, slug, name)) }
+        }
+        item("פודקאסטים") { selectTab(Links.TAB_PODCASTS) }
+        item("סדרות שיעורים מוסרטים") { selectTab(Links.TAB_SERIES) }
+        section("עוד")
+        item("שו\"ת") { go(FaqListScreen(this)) }
+        item("חנות ספרים") { go(StoreScreen(this)) }
+        item("צור קשר") { go(PageScreen(this, "contact", "צור קשר", contact = true)) }
+        item("תרומה לישיבה") {
+            confirmBrowser("https://otniel.org/donations/", "התרומה נעשית באתר הישיבה, בדפדפן של הטלפון ולא בתוך היישומון.")
+        }
+        list.add(View(this).apply { setBackgroundColor(color(R.color.o_line)) }, height = dp(1), top = dp(18), bottom = dp(6))
+        item("הגדרות היישומון", sub = true) { go(SettingsScreen(this)) }
+        item("פתיחת קישורים של האתר ביישומון", sub = true) { openLinkSettings() }
+    }
+
+    fun openDrawer() {
+        if (drawerOpen) return
+        drawerOpen = true
+        drawer.visibility = View.VISIBLE
+        drawer.alpha = 0f
+        drawer.animate().alpha(1f).setDuration(180).start()
+        val w = drawerPanel.layoutParams.width.toFloat()
+        drawerPanel.translationX = w // RTL: the panel comes in from the right
+        drawerPanel.animate().translationX(0f).setDuration(220).start()
+        drawerPanel.requestFocus()
+    }
+
+    fun closeDrawer() {
+        if (!drawerOpen) return
+        drawerOpen = false
+        val w = drawerPanel.layoutParams.width.toFloat()
+        drawerPanel.animate().translationX(w).setDuration(180).start()
+        drawer.animate().alpha(0f).setDuration(180).withEndAction { drawer.visibility = View.GONE }.start()
+    }
+
+    // ------------------------------------------------------------------ navigation (like moving between the site's pages)
+
+    /** The site's sections: home, lessons, video series, podcasts (and the menu). */
+    fun selectTab(t: Int) {
+        when (t) {
+            Links.TAB_LESSONS -> go(LessonsScreen(this, Site.Query(), "שיעורים", isRoot = true))
+            Links.TAB_SERIES -> go(SeriesScreen(this))
+            Links.TAB_PODCASTS -> go(PodcastsScreen(this))
+            Links.TAB_MORE -> openDrawer()
+            else -> goHome()
+        }
+    }
+
+    fun goHome() {
+        while (stack.size > 1) stack.removeAt(stack.size - 1).destroy()
+        display(stack.first())
+    }
+
+    /** Opens a main page from the menu: back from it leads home. */
+    fun go(screen: Screen) {
+        val old = ArrayList(stack.drop(1))
+        while (stack.size > 1) stack.removeAt(stack.size - 1)
+        stack += screen
+        display(screen)
+        old.forEach { it.destroy() }
     }
 
     fun push(screen: Screen) {
-        if (stacks[tab].isEmpty()) stacks[tab] += rootScreen(tab)
-        stacks[tab] += screen
+        stack += screen
         display(screen)
     }
 
-    /** Opens [screen] in [inTab] (used for links that point to a whole section). */
-    fun pushIn(inTab: Int, screen: Screen) {
-        selectTab(inTab)
-        push(screen)
-    }
-
     fun back() {
+        if (drawerOpen) {
+            closeDrawer()
+            return
+        }
         if (isFullscreen) {
             exitFullscreen()
             return
         }
-        val s = stacks[tab]
-        if (s.size > 1) {
-            val gone = s.removeAt(s.size - 1)
-            display(s.last())
+        if (stack.size > 1) {
+            val gone = stack.removeAt(stack.size - 1)
+            display(stack.last())
             gone.destroy()
-        } else if (tab != Links.TAB_HOME) {
-            selectTab(Links.TAB_HOME)
         } else {
             moveTaskToBack(true)
         }
@@ -346,22 +440,25 @@ class MainActivity : AppCompatActivity() {
         updateMini()
     }
 
+    /** The cyan button: "חיפוש" on the home page, "חזרה" everywhere else. */
+    private fun onPill() {
+        if (stack.size > 1) back() else push(LessonsScreen(this, Site.Query(), "חיפוש שיעורים", isRoot = false, searchBox = true))
+    }
+
     fun refreshBar() {
         val screen = shown ?: return
-        titleView.text = screen.title
-        backButton.visibility = if (stacks[tab].size > 1) View.VISIBLE else View.GONE
-        titleView.setPadding(dp(if (stacks[tab].size > 1) 4 else 12), 0, dp(8), 0)
+        pill.text = if (stack.size > 1) "→ חזרה" else "חיפוש"
         actionsBox.removeAllViews()
         for (a in screen.actions()) {
             val b = ImageButton(this).apply {
                 setImageResource(a.icon)
-                imageTintList = android.content.res.ColorStateList.valueOf(color(R.color.o_on_bar))
+                imageTintList = android.content.res.ColorStateList.valueOf(color(R.color.o_teal))
                 background = pressable(24)
                 contentDescription = a.label
                 if (Build.VERSION.SDK_INT >= 26) tooltipText = a.label
                 setOnClickListener { a.onClick() }
             }
-            actionsBox.addView(b, LinearLayout.LayoutParams(dp(48), dp(48)))
+            actionsBox.addView(b, LinearLayout.LayoutParams(dp(44), dp(44)))
         }
     }
 
@@ -382,7 +479,6 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
             ACTION_NOW_PLAYING -> {
-                if (stacks[tab].isEmpty()) selectTab(Links.TAB_HOME)
                 if (shown !is PlayerScreen) push(PlayerScreen(this))
                 return true
             }
@@ -390,22 +486,19 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-    /** A link from outside the app (a message, a notification): opened in the tab it belongs to. */
+    /** A link from outside the app (a message, a notification): opened over the home page. */
     private fun openFromOutside(url: String) {
         if (isFullscreen) exitFullscreen()
-        val home = when (Links.target(url)) {
-            is Target.LessonSlug, is Target.Topic, is Target.Rabbi -> Links.TAB_LESSONS
-            is Target.Playlist -> Links.TAB_SERIES
-            is Target.Spotify, is Target.Apple -> Links.TAB_PODCASTS
-            is Target.FaqSlug, Target.FaqList, Target.Rabbis, Target.Contact, Target.About,
-            Target.Store, is Target.Product, is Target.Page -> Links.TAB_MORE
-            else -> -1
+        closeDrawer()
+        val page = when (Links.target(url)) {
+            is Target.Video, is Target.Media, is Target.Phone, is Target.Mail, is Target.External, is Target.Browser -> false
+            else -> true
         }
-        if (home >= 0) {
-            selectTab(home)
-            popToRoot(home)
-        } else if (stacks[tab].isEmpty()) {
-            selectTab(Links.TAB_HOME)
+        if (page) {
+            while (stack.size > 1) stack.removeAt(stack.size - 1).destroy()
+            if (shown == null) display(stack.first())
+        } else if (shown == null) {
+            display(stack.first())
         }
         open(url)
     }
@@ -413,13 +506,10 @@ class MainActivity : AppCompatActivity() {
     /** Opens any link: the yeshiva's content inside the app, anything else only after asking. */
     fun open(url: String) {
         when (val t = Links.target(url)) {
-            Target.Home -> selectTab(Links.TAB_HOME)
-            is Target.Tab -> {
-                selectTab(t.tab)
-                popToRoot(t.tab)
-            }
+            Target.Home -> goHome()
+            is Target.Tab -> selectTab(t.tab)
             is Target.LessonSlug -> push(LessonScreen(this, slug = t.slug))
-            is Target.Topic -> push(LessonsScreen.forTopicSlug(this, t.slug))
+            is Target.Topic -> push(LessonsScreen.forTopicSlug(this, t.slug, "נושא"))
             is Target.Rabbi -> push(LessonsScreen.forRabbiSlug(this, t.slug))
             is Target.FaqSlug -> push(FaqScreen(this, slug = t.slug))
             Target.FaqList -> push(FaqListScreen(this))
@@ -606,11 +696,11 @@ class MainActivity : AppCompatActivity() {
     // ------------------------------------------------------------------ new content and updates
 
     private fun announce(found: List<NewItem>) {
-        (stacks[Links.TAB_HOME].firstOrNull() as? HomeScreen)?.refreshSoon()
+        (stack.firstOrNull() as? HomeScreen)?.refreshSoon()
         val first = found.first()
         val text = if (found.size == 1) "${first.kind}: ${first.title}" else "נוספו ${found.size} פריטים חדשים באתר"
         Snackbar.make(content, text, Snackbar.LENGTH_LONG)
-            .setAction("לצפייה") { if (found.size == 1) open(first.link) else selectTab(Links.TAB_HOME) }
+            .setAction("לצפייה") { if (found.size == 1) open(first.link) else goHome() }
             .show()
     }
 

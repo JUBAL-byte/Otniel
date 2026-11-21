@@ -26,8 +26,10 @@
         <item name="colorOnError">@color/o_on_error</item>
         <item name="android:windowBackground">@color/o_background</item>
         <item name="android:statusBarColor">@color/o_bar</item>
-        <item name="android:navigationBarColor">@color/o_surface_container</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@color/o_bar</item>
+        <item name="android:windowLightStatusBar">@bool/o_light_bars</item>
+        <item name="android:fontFamily">@font/heebo</item>
+        <item name="fontFamily">@font/heebo</item>
     </style>
 
     <style name="Theme.Otniel" parent="Base.Theme.Otniel" />

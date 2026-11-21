@@ -10,6 +10,10 @@ import java.util.concurrent.ConcurrentHashMap
  * All calls block; run them on Dispatchers.IO.
  */
 object Site {
+    /** The site's own logo and the picture at the top of its home page (shown as on the site). */
+    const val LOGO = "https://vangus-cdn.com/otniel.org/wp-content/uploads/2026/01/%D7%9C%D7%95%D7%92%D7%95-%D7%99%D7%A9%D7%99%D7%91%D7%AA-%D7%A2%D7%AA%D7%A0%D7%99%D7%90%D7%9C-02-1.svg"
+    const val HERO_IMAGE = "https://otniel.org/wp-content/uploads/2026/01/%D7%A2%D7%AA%D7%A0%D7%99%D7%90%D7%9C-%D7%94%D7%99%D7%A8%D7%95-min.webp"
+
     private const val API = "https://otniel.org/wp-json/wp/v2/"
     private const val STORE_API = "https://otniel.org/wp-json/wc/store/v1/"
     private const val LESSON_FIELDS = "id,date,link,slug,title,excerpt,rabbis,topics,featured_media"
@@ -32,8 +36,9 @@ object Site {
 
     // ------------------------------------------------------------------ lessons
 
+    /** With the text too (small), so a card can show whether a lesson is a video or written. */
     fun lessons(query: Query, page: Int, perPage: Int = 20): Page<Lesson> {
-        val params = arrayListOf("per_page" to "$perPage", "page" to "$page", "_fields" to LESSON_FIELDS)
+        val params = arrayListOf("per_page" to "$perPage", "page" to "$page", "_fields" to "$LESSON_FIELDS,content")
         if (query.rabbi > 0) params += "rabbis" to "${query.rabbi}"
         if (query.topic > 0) {
             params += "topics[terms]" to "${query.topic}"

@@ -1,31 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Light: warm stone paper with a deep teal (the hills at dusk) and a sand accent -->
-    <color name="o_primary">#1F5C57</color>
+    <!-- The site's own palette (otniel.org): teal, light cyan, dark sea-blue text on a light grey page -->
+    <color name="o_teal">#358592</color>
+    <color name="o_cyan">#6ECDDD</color>
+    <color name="o_mint">#6EDDA5</color>
+    <color name="o_text">#0D2F35</color>
+    <color name="o_page">#F0F3F4</color>
+    <color name="o_card">#FFFFFF</color>
+    <color name="o_soft">#E1EAEB</color>
+    <color name="o_muted">#96B3B8</color>
+    <color name="o_terra">#DE8E6F</color>
+    <color name="o_line">#D3DFE1</color>
+    <color name="o_scrim">#CC000000</color>
+
+    <color name="o_primary">#358592</color>
     <color name="o_on_primary">#FFFFFF</color>
-    <color name="o_primary_container">#CDE8E3</color>
-    <color name="o_on_primary_container">#0A2B28</color>
-    <color name="o_secondary">#8A6A33</color>
-    <color name="o_on_secondary">#FFFFFF</color>
-    <color name="o_secondary_container">#F3E3C3</color>
-    <color name="o_on_secondary_container">#2C1F05</color>
-    <color name="o_background">#FBF8F3</color>
-    <color name="o_on_background">#1B1C1A</color>
-    <color name="o_surface">#FBF8F3</color>
-    <color name="o_on_surface">#1B1C1A</color>
-    <color name="o_surface_variant">#ECE7DE</color>
-    <color name="o_on_surface_variant">#5A5A52</color>
-    <color name="o_outline">#8C8B82</color>
-    <color name="o_outline_variant">#DCD7CC</color>
+    <color name="o_primary_container">#6ECDDD</color>
+    <color name="o_on_primary_container">#0D2F35</color>
+    <color name="o_secondary">#6ECDDD</color>
+    <color name="o_on_secondary">#0D2F35</color>
+    <color name="o_secondary_container">#E1EAEB</color>
+    <color name="o_on_secondary_container">#0D2F35</color>
+    <color name="o_background">#F0F3F4</color>
+    <color name="o_on_background">#0D2F35</color>
+    <color name="o_surface">#F0F3F4</color>
+    <color name="o_on_surface">#0D2F35</color>
+    <color name="o_surface_variant">#E1EAEB</color>
+    <color name="o_on_surface_variant">#4C6B71</color>
+    <color name="o_outline">#7E9DA2</color>
+    <color name="o_outline_variant">#D3DFE1</color>
     <color name="o_surface_container_lowest">#FFFFFF</color>
-    <color name="o_surface_container_low">#F6F2EA</color>
-    <color name="o_surface_container">#F1ECE3</color>
-    <color name="o_surface_container_high">#EBE6DC</color>
-    <color name="o_surface_container_highest">#E5DFD4</color>
-    <color name="o_error">#B3261E</color>
+    <color name="o_surface_container_low">#FFFFFF</color>
+    <color name="o_surface_container">#FFFFFF</color>
+    <color name="o_surface_container_high">#E1EAEB</color>
+    <color name="o_surface_container_highest">#D3DFE1</color>
+    <color name="o_error">#C0392B</color>
     <color name="o_on_error">#FFFFFF</color>
-    <color name="o_bar">#1F5C57</color>
-    <color name="o_on_bar">#FFFFFF</color>
-    <color name="o_link">#1F5C57</color>
+    <color name="o_bar">#FFFFFF</color>
+    <color name="o_on_bar">#358592</color>
+    <color name="o_link">#358592</color>
     <color name="o_sand">#E8D3A9</color>
 </resources>

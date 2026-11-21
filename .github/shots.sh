@@ -9,6 +9,12 @@ shot() { sleep "${2:-14}"; adb exec-out screencap -p > "shots/$1.png"; }
 open_link() { adb shell "am start -a android.intent.action.VIEW -d '$1' -n $PKG/.MainActivity"; }
 
 adb shell "am start -n $PKG/.MainActivity"; shot 01-home 25
+# Scroll the home page, and open the side menu (top right, in a right-to-left screen)
+adb shell input swipe 160 500 160 150 400; shot 01b-home-scrolled 4
+DENSITY=$(adb shell wm density | grep -o '[0-9]*' | tail -1); W=$(adb shell wm size | grep -o '[0-9]*x' | tail -1 | tr -d x)
+X=$(( W - 26 * DENSITY / 160 )); Y=$(( (24 + 32) * DENSITY / 160 ))
+adb shell input tap $X $Y; shot 01c-menu 3
+adb shell input keyevent KEYCODE_BACK; sleep 1
 open_link "https://otniel.org/all-lessons/"; shot 02-lessons
 open_link "https://otniel.org/all-vid-series/"; shot 03-series
 open_link "https://otniel.org/all-podcasts/"; shot 04-podcasts

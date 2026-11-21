@@ -96,10 +96,18 @@ object SiteParse {
 
     private fun insideListing(el: Element): Boolean = el.parents().any { it.hasClass("jet-listing-grid") }
 
-    /** The YouTube (or uploaded) video a lesson page shows. */
+    /** The YouTube (or uploaded) video a lesson page shows, and the teacher's photo. */
     fun lessonMedia(html: String): LessonMedia {
         val doc = doc(html)
         val main = main(doc)
+        val photo = main.select(".elementor-widget-image img").firstOrNull { !insideListing(it) }?.let { img ->
+            val src = img.absUrl("src")
+            if (src.isBlank() || src.startsWith("data:")) img.absUrl("data-src") else src
+        } ?: ""
+        return findVideo(main).copy(rabbiImage = photo)
+    }
+
+    private fun findVideo(main: Element): LessonMedia {
         for (el in main.select(".elementor-widget-video[data-settings]")) {
             if (insideListing(el)) continue
             val s = runCatching { J.parse(el.attr("data-settings")) }.getOrNull() ?: continue

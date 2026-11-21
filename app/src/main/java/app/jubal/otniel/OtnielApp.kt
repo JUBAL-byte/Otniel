@@ -1,11 +1,14 @@
 package app.jubal.otniel
 
 import android.app.Application
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.decode.SvgDecoder
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.localization.ContentCountry
 import org.schabi.newpipe.extractor.localization.Localization
 
-class OtnielApp : Application() {
+class OtnielApp : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         Store.init(this)
@@ -20,4 +23,10 @@ class OtnielApp : Application() {
         Updates.createChannel(this)
         Updates.schedule(this)
     }
+
+    /** Pictures, including the site's SVG logo. */
+    override fun newImageLoader(): ImageLoader = ImageLoader.Builder(this)
+        .components { add(SvgDecoder.Factory()) }
+        .crossfade(true)
+        .build()
 }
