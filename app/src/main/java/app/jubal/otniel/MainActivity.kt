@@ -177,7 +177,7 @@ class MainActivity : AppCompatActivity() {
             contentDescription = "תפריט"
             setOnClickListener { openDrawer() }
         }
-        bar.addView(menuButton, LinearLayout.LayoutParams(dp(52), dp(52)))
+        bar.addView(menuButton, LinearLayout.LayoutParams(dp(48), dp(48)))
         bar.add(logoView(), ViewGroup.LayoutParams.WRAP_CONTENT)
         bar.add(View(this), 0, dp(1), weight = 1f)
         actionsBox = horizontal()
@@ -282,17 +282,17 @@ class MainActivity : AppCompatActivity() {
         words.add(text(10.5f, bold = true).apply { text = "בית ועד הר חברון" }, ViewGroup.LayoutParams.WRAP_CONTENT)
         frame.addView(words, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL))
         val img = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.FIT_START
-            adjustViewBounds = true
+            scaleType = ImageView.ScaleType.FIT_CENTER
             contentDescription = "ישיבת עתניאל"
             visibility = View.INVISIBLE
         }
-        frame.addView(img, FrameLayout.LayoutParams(dp(118), dp(38), Gravity.CENTER_VERTICAL))
-        img.load(Site.LOGO) {
-            listener(onSuccess = { _, _ ->
-                img.visibility = View.VISIBLE
-                words.visibility = View.GONE
-            })
+        // The logo's own proportions are 384 × 120
+        frame.addView(img, FrameLayout.LayoutParams(dp(141), dp(44), Gravity.CENTER_VERTICAL))
+        lifecycleScope.launch {
+            val logo = withContext(Dispatchers.IO) { Site.logo() } ?: return@launch
+            img.setImageDrawable(logo)
+            img.visibility = View.VISIBLE
+            words.visibility = View.GONE
         }
         frame.clickable(10) { goHome() }
         frame.setPadding(dp(6), dp(4), dp(6), dp(4))

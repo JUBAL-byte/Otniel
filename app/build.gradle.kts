@@ -105,6 +105,7 @@ dependencies {
     implementation("org.jsoup:jsoup:1.18.1")
     implementation("io.coil-kt:coil:2.7.0")
     implementation("io.coil-kt:coil-svg:2.7.0")
+    implementation("com.caverock:androidsvg-aar:1.4")
 
     testImplementation("junit:junit:4.13.2")
 }

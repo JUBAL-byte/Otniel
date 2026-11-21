@@ -196,6 +196,23 @@ object Site {
         return SiteParse.books(Net.text(url)).firstOrNull()
     }
 
+    /**
+     * The site's logo as a vector drawing (the file on the site is an SVG), so it stays sharp
+     * at any size. Kept on the phone for a week, so it shows at once.
+     */
+    fun logo(): android.graphics.drawable.PictureDrawable? {
+        val key = "logo.svg"
+        val cached = Store.cached(key)
+        val text = if (cached != null && Store.cachedAge(key) < 7 * DAY) {
+            cached
+        } else {
+            runCatching { Net.text(LOGO).also { if (it.contains("<svg")) Store.putCache(key, it) } }.getOrNull() ?: cached
+        } ?: return null
+        return runCatching {
+            android.graphics.drawable.PictureDrawable(com.caverock.androidsvg.SVG.getFromString(text).renderToPicture())
+        }.getOrNull()
+    }
+
     /** Buying happens on the site, in the phone's browser: this link puts the book in the site's cart. */
     fun buyLink(book: Book): String = "https://otniel.org/cart/?add-to-cart=${book.id}"
 }
