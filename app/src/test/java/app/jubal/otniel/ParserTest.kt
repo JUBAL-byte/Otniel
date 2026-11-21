@@ -178,6 +178,8 @@ class ParserTest {
         assertTrue(Routes.of("https://otniel.org/donations/") is Route.Store)
         assertTrue(Routes.of("https://otniel.org/?add-to-cart=211") is Route.Store)
         assertTrue(Routes.of("https://otniel.org/wp-login.php") is Route.Store)
+        assertEquals("donations", Routes.firstSegment("https://otniel.org/donations/?x=1"))
+        assertEquals("שות", Routes.firstSegment("https://otniel.org/%d7%a9%d7%95%d7%aa/"))
 
         // Everything else leaves the app
         assertEquals(Route.Pdf("https://otniel.org/wp-content/uploads/2026/11/a.pdf"), Routes.of("http://otniel.org/wp-content/uploads/2026/11/a.pdf"))

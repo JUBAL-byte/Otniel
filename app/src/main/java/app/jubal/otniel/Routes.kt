@@ -86,6 +86,12 @@ object Routes {
         return Route.Site(secure)
     }
 
+    /** The first part of the address's path ("cart" for https://otniel.org/cart/), decoded, in small letters. */
+    fun firstSegment(url: String): String {
+        val path = URL.find(url.trim())?.groupValues?.get(3) ?: return ""
+        return path.split('/').firstOrNull { it.isNotEmpty() }?.let { decode(it).lowercase() } ?: ""
+    }
+
     /** The first link to otniel.org in shared text (a WhatsApp message, say), as https. */
     fun siteLinkIn(text: String): String? {
         val found = LINK.find(text)?.value?.trimEnd('.', ',', ')', '!', '?', ':', ';') ?: return null

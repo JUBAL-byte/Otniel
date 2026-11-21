@@ -89,20 +89,26 @@ object Outside {
         b.show()
     }
 
-    /** The bookstore, cart, payment, account and donations open only in the phone's browser. */
+    /** The bookstore, cart, payment, account, donations and registration open only in the phone's browser. */
     fun store(activity: Activity, url: String) {
+        val why = when (Routes.firstSegment(url)) {
+            "donations", "donate" -> "התרומות נפתחות בדפדפן של הטלפון, מחוץ ליישומון, כדי שפרטי התשלום יישארו רק שם."
+            "shvooshim" -> "ההרשמה נפתחת בדפדפן של הטלפון, מחוץ ליישומון, כדי שהפרטים יישארו רק שם."
+            "my-account", "wp-login.php", "wp-admin" -> "הכניסה לחשבון נפתחת בדפדפן של הטלפון, מחוץ ליישומון."
+            else -> "חנות הספרים והתשלום נפתחים בדפדפן של הטלפון, מחוץ ליישומון, כדי שפרטי התשלום יישארו רק שם."
+        }
         if (browserPackage(activity) == null) {
             copy(activity, url)
             MaterialAlertDialogBuilder(activity)
                 .setTitle("אין דפדפן בטלפון")
-                .setMessage("חנות הספרים והתשלום נפתחים רק בדפדפן. לא מצאנו דפדפן בטלפון הזה, אז העתקנו את הקישור:\n\n${shown(url)}")
+                .setMessage("$why\n\nלא מצאנו דפדפן בטלפון הזה, אז העתקנו את הקישור:\n${shown(url)}")
                 .setPositiveButton("הבנתי", null)
                 .show()
             return
         }
         MaterialAlertDialogBuilder(activity)
             .setTitle("מעבר לדפדפן")
-            .setMessage("חנות הספרים, התשלום והתרומות נפתחים בדפדפן של הטלפון, מחוץ ליישומון, כדי שפרטי התשלום יישארו רק שם.")
+            .setMessage(why)
             .setPositiveButton("פתח בדפדפן") { _, _ -> browser(activity, url) }
             .setNegativeButton("ביטול", null)
             .show()

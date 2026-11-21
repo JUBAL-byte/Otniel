@@ -38,11 +38,12 @@ adb shell "am start -n $PKG/.MainActivity"; shot 01-home 30
 dump 01-home
 swipe_up; shot 01b-home-scrolled 5
 swipe_down; swipe_down; sleep 2
-# The site's own menu button (the teal "three lines" at the top right of the page)
+# The site's own menu button (the teal "three lines" at the top right of the page;
+# found in the second picture, as the first one may show Android's notifications question)
 pip install -q pillow >/dev/null 2>&1
 MENU=$(python3 - <<'PY'
 from PIL import Image
-im = Image.open("shots/01-home.png").convert("RGB")
+im = Image.open("shots/01b-home-scrolled.png").convert("RGB")
 w, h = im.size
 pts = [(x, y) for y in range(0, h // 6) for x in range(int(w * 0.75), w)
        if (lambda p: abs(p[0] - 0x35) < 30 and abs(p[1] - 0x85) < 30 and abs(p[2] - 0x92) < 30)(im.getpixel((x, y)))]
@@ -91,4 +92,6 @@ adb shell wm density reset
 adb shell dumpsys webviewupdate | grep -i -E "current webview package|versionName" | head -3 > shots/webview.txt
 adb logcat -d -s AndroidRuntime:E > shots/crash.txt
 adb logcat -d | grep -i -E "otniel|chromium|cr_|webview" | tail -400 > shots/log.txt
+# Empty files cannot be uploaded
+find shots -type f -empty -delete
 exit 0
