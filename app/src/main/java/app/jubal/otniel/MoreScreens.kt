@@ -484,9 +484,6 @@ class SettingsScreen(act: MainActivity) : ListScreen(act) {
         rows += HeaderRow("על היישומון")
         val version = runCatching { act.packageManager.getPackageInfo(act.packageName, 0).versionName }.getOrNull() ?: ""
         rows += EntryRow("גרסה $version", "בדיקה אם יש גרסה חדשה", icon = R.drawable.ic_download) { checkUpdate() }
-        rows += MessageRow(
-            "יישומון לא רשמי שמציג את התכנים של אתר ישיבת עתניאל (otniel.org) ושל ערוץ היוטיוב שלה, ישר מהמקור. כל התוכן שייך לישיבה. אין ביישומון דפדפן: קישורים חיצוניים נפתחים רק אחרי אישור, בדפדפן של הטלפון.",
-        )
         show(rows)
     }
 
