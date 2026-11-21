@@ -161,24 +161,6 @@ class HomeScreen(act: MainActivity) : ListScreen(act) {
         val rows = ArrayList<Row>()
         rows += hero()
 
-        if (!Store.linksTipDone() && act.linksEnabled() != true) {
-            val modern = android.os.Build.VERSION.SDK_INT >= 31
-            rows += NoticeRow(
-                if (modern) "כדי שקישורים לאתר הישיבה (otniel.org) ייפתחו ישר ביישומון, צריך לאשר זאת פעם אחת: במסך שייפתח לחץ על \"הוספת קישור\" וסמן את otniel.org."
-                else "כשתלחץ בפעם הראשונה על קישור לאתר הישיבה (otniel.org), הטלפון ישאל איך לפתוח אותו: בחר \"עתניאל\" ואז \"תמיד\".",
-                if (modern) "לאישור" else "הבנתי",
-                onButton = {
-                    Store.setLinksTipDone()
-                    if (modern) act.openLinkSettings()
-                    render()
-                },
-                onClose = {
-                    Store.setLinksTipDone()
-                    render()
-                },
-            )
-        }
-
         val recent = Store.recent().filter { it.percent in 1..97 }.take(3)
         if (recent.isNotEmpty()) {
             rows += HeaderRow("להמשיך מאיפה שהפסקת")
