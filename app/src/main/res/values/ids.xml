@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="row_title" type="id" />
+    <item name="row_subtitle" type="id" />
+    <item name="row_meta" type="id" />
+    <item name="row_action" type="id" />
+    <item name="row_close" type="id" />
+    <item name="row_progress" type="id" />
+    <item name="row_image" type="id" />
+    <item name="row_icon" type="id" />
+    <item name="row_chips" type="id" />
+    <item name="row_search" type="id" />
+    <item name="nav_home" type="id" />
+    <item name="nav_lessons" type="id" />
+    <item name="nav_series" type="id" />
+    <item name="nav_podcasts" type="id" />
+    <item name="nav_more" type="id" />
+</resources>

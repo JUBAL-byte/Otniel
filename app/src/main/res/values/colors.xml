@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Light: warm stone paper with a deep teal (the hills at dusk) and a sand accent -->
+    <color name="o_primary">#1F5C57</color>
+    <color name="o_on_primary">#FFFFFF</color>
+    <color name="o_primary_container">#CDE8E3</color>
+    <color name="o_on_primary_container">#0A2B28</color>
+    <color name="o_secondary">#8A6A33</color>
+    <color name="o_on_secondary">#FFFFFF</color>
+    <color name="o_secondary_container">#F3E3C3</color>
+    <color name="o_on_secondary_container">#2C1F05</color>
+    <color name="o_background">#FBF8F3</color>
+    <color name="o_on_background">#1B1C1A</color>
+    <color name="o_surface">#FBF8F3</color>
+    <color name="o_on_surface">#1B1C1A</color>
+    <color name="o_surface_variant">#ECE7DE</color>
+    <color name="o_on_surface_variant">#5A5A52</color>
+    <color name="o_outline">#8C8B82</color>
+    <color name="o_outline_variant">#DCD7CC</color>
+    <color name="o_surface_container_lowest">#FFFFFF</color>
+    <color name="o_surface_container_low">#F6F2EA</color>
+    <color name="o_surface_container">#F1ECE3</color>
+    <color name="o_surface_container_high">#EBE6DC</color>
+    <color name="o_surface_container_highest">#E5DFD4</color>
+    <color name="o_error">#B3261E</color>
+    <color name="o_on_error">#FFFFFF</color>
+    <color name="o_bar">#1F5C57</color>
+    <color name="o_on_bar">#FFFFFF</color>
+    <color name="o_link">#1F5C57</color>
+    <color name="o_sand">#E8D3A9</color>
+</resources>

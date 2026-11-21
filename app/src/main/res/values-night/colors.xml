@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="o_primary">#86D0C6</color>
+    <color name="o_on_primary">#003733</color>
+    <color name="o_primary_container">#14504B</color>
+    <color name="o_on_primary_container">#CDE8E3</color>
+    <color name="o_secondary">#E2C48D</color>
+    <color name="o_on_secondary">#3F2E0A</color>
+    <color name="o_secondary_container">#5A4414</color>
+    <color name="o_on_secondary_container">#F3E3C3</color>
+    <color name="o_background">#121413</color>
+    <color name="o_on_background">#E4E2DD</color>
+    <color name="o_surface">#121413</color>
+    <color name="o_on_surface">#E4E2DD</color>
+    <color name="o_surface_variant">#3F4943</color>
+    <color name="o_on_surface_variant">#BEC6C0</color>
+    <color name="o_outline">#89938C</color>
+    <color name="o_outline_variant">#3F4943</color>
+    <color name="o_surface_container_lowest">#0C0F0E</color>
+    <color name="o_surface_container_low">#1A1D1C</color>
+    <color name="o_surface_container">#1E2120</color>
+    <color name="o_surface_container_high">#282B2A</color>
+    <color name="o_surface_container_highest">#333635</color>
+    <color name="o_error">#F2B8B5</color>
+    <color name="o_on_error">#601410</color>
+    <color name="o_bar">#163B38</color>
+    <color name="o_on_bar">#F1F1EC</color>
+    <color name="o_link">#86D0C6</color>
+    <color name="o_sand">#E8D3A9</color>
+</resources>

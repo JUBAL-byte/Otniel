@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Otniel" parent="Base.Theme.Otniel">
+        <item name="android:windowLightNavigationBar">@bool/o_light_bars</item>
+    </style>
+</resources>
