@@ -204,4 +204,64 @@ class ParserTest {
         assertEquals("https://www.otniel.org/shiurim/a/", Routes.siteLinkIn("http://www.otniel.org/shiurim/a/."))
         assertEquals(null, Routes.siteLinkIn("https://www.youtube.com/watch?v=rYDzoIPBT6M"))
     }
+
+    @Test
+    fun podcastFeed() {
+        val xml = """<?xml version="1.0" encoding="UTF-8"?>
+            <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+            <channel>
+              <title><![CDATA[יהדות ופמיניזם]]></title>
+              <itunes:author>ישיבת עתניאל</itunes:author>
+              <image><url>https://example.org/small.jpg</url></image>
+              <itunes:image href="https://example.org/cover.jpg"/>
+              <item>
+                <title><![CDATA[פרק 2: האישה בהלכה]]></title>
+                <description><![CDATA[<p>שורה ראשונה</p><p>שורה&nbsp;שנייה</p>]]></description>
+                <pubDate>Mon, 16 Nov 2026 18:00:00 GMT</pubDate>
+                <enclosure url="https://anchor.fm/s/1/podcast/play/2/a.m4a" length="1" type="audio/x-m4a"/>
+                <itunes:duration>01:02:03</itunes:duration>
+              </item>
+              <item>
+                <title>פרק 1</title>
+                <pubDate>Mon, 09 Nov 2026 18:00:00 +0000</pubDate>
+                <enclosure url="https://anchor.fm/s/1/podcast/play/1/a.mp3" type="audio/mpeg"/>
+                <itunes:duration>2723</itunes:duration>
+              </item>
+              <item><title>בלי קובץ</title></item>
+              <item><title>סרטון</title><enclosure url="https://x.org/v.mp4" type="video/mp4"/></item>
+            </channel></rss>""".trimIndent()
+        val f = Feeds.parse(xml)
+        assertEquals("יהדות ופמיניזם", f.title)
+        assertEquals("ישיבת עתניאל", f.author)
+        assertEquals("https://example.org/cover.jpg", f.image)
+        assertEquals(2, f.episodes.size)
+        val e = f.episodes[0]
+        assertEquals("פרק 2: האישה בהלכה", e.title)
+        assertEquals(3723L, e.durationSec)
+        assertEquals("שורה ראשונה\n\nשורה שנייה", e.description)
+        assertTrue(e.date > 0)
+        assertEquals("https://anchor.fm/s/1/podcast/play/2/a.m4a", e.id)
+        assertEquals(2723L, f.episodes[1].durationSec)
+        assertEquals("שעה ו-2 דק׳", Feeds.length(3723))
+        assertEquals("45 דק׳", Feeds.length(2723))
+        assertEquals("1:02:03", Feeds.clock(3723))
+        assertEquals("4:05", Feeds.clock(245))
+    }
+
+    @Test
+    fun podcastLinks() {
+        val shows = listOf(
+            Show("", "הרב א", "https://open.spotify.com/show/4rOoJ6Egrf8K2IrywzwOMk?si=1", "https://www.youtube.com/playlist?list=PL1ZOExsgbKmXjBV_iJ6CN9D0WwJg-K84X", "https://podcasts.apple.com/il/podcast/x/id1654390049", ""),
+            Show("שם", "", "https://open.spotify.com/show/AAA", "", "", ""),
+        )
+        assertEquals(shows[0], Feeds.showFor("https://open.spotify.com/show/4rOoJ6Egrf8K2IrywzwOMk", shows))
+        assertEquals(shows[0], Feeds.showFor("https://podcasts.apple.com/us/podcast/other-name/id1654390049?i=1", shows))
+        assertEquals(shows[0], Feeds.showFor("https://www.youtube.com/playlist?list=PL1ZOExsgbKmXjBV_iJ6CN9D0WwJg-K84X&si=2", shows))
+        assertEquals(shows[1], Feeds.showFor("https://open.spotify.com/intl-he/show/AAA", shows))
+        assertEquals(null, Feeds.showFor("https://open.spotify.com/show/BBB", shows))
+        assertEquals(null, Feeds.showFor("https://www.youtube.com/watch?v=rYDzoIPBT6M", shows))
+        assertTrue(Feeds.isPodcastLink("https://podcasts.apple.com/il/podcast/x/id1654390049"))
+        assertTrue(!Feeds.isPodcastLink("https://open.spotify.com/episode/123"))
+        assertEquals(1654390049L, Feeds.appleId("https://podcasts.apple.com/il/podcast/x/id1654390049"))
+    }
 }

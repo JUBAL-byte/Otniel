@@ -51,6 +51,45 @@ class LiveSiteTest {
         assertTrue(shows.size >= 10)
     }
 
+    /** How many of the site's podcasts the app can play itself (from their RSS feed, found through Apple's directory). */
+    @Test
+    fun podcastFeeds() {
+        live()
+        val shows = SiteParse.shows(get("https://otniel.org/all-podcasts/"))
+        fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8")
+        var byApple = 0
+        var byName = 0
+        var sample = ""
+        val missing = ArrayList<String>()
+        for (show in shows) {
+            var feed = Feeds.appleId(show.apple)?.let { id ->
+                runCatching { J.parse(get("https://itunes.apple.com/lookup?id=$id&entity=podcast&country=IL"))["results"][0]["feedUrl"].str() }.getOrDefault("")
+            }.orEmpty()
+            if (feed.isNotBlank()) byApple++ else {
+                val name = show.title.ifBlank {
+                    if (show.spotify.isBlank()) "" else runCatching {
+                        J.parse(get("https://open.spotify.com/oembed?url=" + enc(show.spotify)))["title"].str()
+                    }.getOrDefault("")
+                }
+                if (name.isNotBlank()) {
+                    feed = runCatching {
+                        J.parse(get("https://itunes.apple.com/search?media=podcast&entity=podcast&limit=25&country=IL&term=" + enc(name)))["results"]
+                            .list().firstOrNull { Feeds.normalize(it["collectionName"].str()) == Feeds.normalize(name) }?.get("feedUrl")?.str()
+                    }.getOrNull().orEmpty()
+                }
+                if (feed.isNotBlank()) byName++ else missing += name.ifBlank { show.spotify.ifBlank { show.youtube } }
+            }
+            if (sample.isEmpty() && feed.isNotBlank()) sample = feed
+        }
+        println("podcast feeds: ${byApple + byName} of ${shows.size} (by Apple link $byApple, by name $byName); without: ${missing.take(25)}")
+        if (sample.isNotEmpty()) {
+            val f = Feeds.parse(get(sample))
+            println("podcast feed e.g.: ${f.title} | ${f.episodes.size} episodes | newest: ${f.episodes.firstOrNull()?.title} | ${Feeds.length(f.episodes.firstOrNull()?.durationSec ?: 0)}")
+            assertTrue(f.episodes.isNotEmpty())
+        }
+        assertTrue(byApple + byName >= 5)
+    }
+
     @Test
     fun faqAnswer() {
         live()

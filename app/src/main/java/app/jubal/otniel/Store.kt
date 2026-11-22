@@ -32,6 +32,31 @@ object Store {
     fun lastPagesCheck(): Long = prefs.getLong("pages_check", 0)
     fun setLastPagesCheck(time: Long) = prefs.edit().putLong("pages_check", time).apply()
 
+    // ------------------------------------------------------------------ podcasts: feeds, listening speed and where each episode stopped
+
+    fun showFeed(key: String): String = prefs.getString("feed:$key", "") ?: ""
+    fun setShowFeed(key: String, feed: String) = prefs.edit().putString("feed:$key", feed).apply()
+
+    fun speed(): Float = prefs.getFloat("speed", 1f)
+    fun setSpeed(speed: Float) = prefs.edit().putFloat("speed", speed).apply()
+
+    fun position(id: String): Long = prefs.getLong("pos:$id", 0)
+
+    /** How far an episode was heard, 0..1 (1 when finished). */
+    fun heard(id: String): Float {
+        if (prefs.getBoolean("done:$id", false)) return 1f
+        val duration = prefs.getLong("dur:$id", 0)
+        return if (duration > 0) (position(id).toFloat() / duration).coerceIn(0f, 1f) else 0f
+    }
+
+    fun savePosition(id: String, position: Long, duration: Long) {
+        prefs.edit().putLong("pos:$id", position).putLong("dur:$id", duration).remove("done:$id").apply()
+    }
+
+    fun markDone(id: String) {
+        prefs.edit().remove("pos:$id").putBoolean("done:$id", true).apply()
+    }
+
     // ------------------------------------------------------------------ last copy of a list
 
     private fun file(key: String) = File(cache, key.replace(Regex("[^A-Za-z0-9_.-]"), "_"))

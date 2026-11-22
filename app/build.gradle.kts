@@ -80,6 +80,11 @@ kotlin {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 
+    implementation("androidx.media3:media3-exoplayer:1.5.1")
+    implementation("androidx.media3:media3-session:1.5.1")
+    implementation("com.google.guava:guava:33.3.1-android")
+    implementation("io.coil-kt:coil:2.7.0")
+
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.core:core-ktx:1.13.1")

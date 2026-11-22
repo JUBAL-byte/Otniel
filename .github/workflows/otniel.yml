@@ -97,7 +97,7 @@ jobs:
           cp test.log live.log build.log report/ 2>/dev/null || true
           for f in app/build/test-results/testReleaseUnitTest/*.xml; do [ -f "$f" ] && cp "$f" report/; done
           echo "live check: ${{ steps.live.outcome }}" > report/summary.txt
-          grep -h -E "^(lessons|series|podcasts|faq|rabbis|books|about)" report/*.xml >> report/summary.txt 2>/dev/null || true
+          grep -h -E "^(lessons|series|podcast|faq|rabbis|books|about)" report/*.xml >> report/summary.txt 2>/dev/null || true
           (cd report && zip -q ../report.zip *)
           gh release delete otniel-ci --yes --cleanup-tag 2>/dev/null || true
           gh release create otniel-ci report.zip report/summary.txt \

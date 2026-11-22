@@ -71,6 +71,16 @@ adb shell input keyevent KEYCODE_BACK; sleep 1
 # A link shared as text (from WhatsApp, say)
 adb shell "am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT 'שווה לשמוע: otniel.org/all-podcasts/' -n $PKG/.MainActivity"; shot 07-shared-link
 
+# A podcast of the yeshiva: its link on the site opens the app's own player, which plays with the screen off
+APPLE=$(curl -s https://otniel.org/all-podcasts/ | grep -o 'https://podcasts.apple.com/[^"]*' | head -1)
+if [ -n "$APPLE" ]; then
+  open_link "$APPLE"; shot 13-podcast 20
+  dump 13-podcast; tap_on "^ ?ניגון$" 13-podcast; shot 14-podcast-playing 15
+  adb shell cmd statusbar expand-notifications; shot 15-notification 3
+  adb shell cmd statusbar collapse; sleep 1
+  adb shell input keyevent KEYCODE_BACK; shot 16-site-with-player 5
+fi
+
 # A PDF from the site opens page by page in the app
 PDF=$(curl -s 'https://otniel.org/wp-json/wp/v2/media?mime_type=application/pdf&per_page=1&_fields=source_url' | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d[0]["source_url"] if d else "")')
 if [ -n "$PDF" ]; then open_link "$PDF"; shot 08-pdf 20; adb shell input keyevent KEYCODE_BACK; sleep 1; fi

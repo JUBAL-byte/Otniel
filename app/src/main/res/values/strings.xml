@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">בית ועד הר חברון</string>
+    <!-- The notification of the podcast player -->
+    <string name="default_notification_channel_name">מתנגן עכשיו</string>
 </resources>

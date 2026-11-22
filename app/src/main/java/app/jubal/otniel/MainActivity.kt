@@ -71,6 +71,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var offline: LinearLayout
     private lateinit var offlineTitle: TextView
     private lateinit var fullscreen: FrameLayout
+    private lateinit var mini: MiniPlayer
 
     private var custom: View? = null
     private var customDone: WebChromeClient.CustomViewCallback? = null
@@ -128,6 +129,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        Playback.connect(this)
         watchNetwork()
         checkForUpdate()
     }
@@ -172,6 +174,14 @@ class MainActivity : AppCompatActivity() {
         val teal = ContextCompat.getColor(this, R.color.o_teal)
         val ink = ContextCompat.getColor(this, R.color.o_text)
         root = FrameLayout(this).apply { setBackgroundColor(Color.WHITE) }
+        // The site on top, and under it the small player while a podcast episode is playing
+        val webArea = FrameLayout(this)
+        mini = MiniPlayer(this) { Playback.currentPodcast()?.let { PodcastActivity.open(this, it) } }
+        root.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(webArea, LinearLayout.LayoutParams(-1, 0, 1f))
+            addView(mini, LinearLayout.LayoutParams(-1, -2))
+        }, FrameLayout.LayoutParams(-1, -1))
 
         web = WebView(this)
         refresh = SwipeRefreshLayout(this).apply {
@@ -184,7 +194,7 @@ class MainActivity : AppCompatActivity() {
                 web.reload()
             }
         }
-        root.addView(refresh, FrameLayout.LayoutParams(-1, -1))
+        webArea.addView(refresh, FrameLayout.LayoutParams(-1, -1))
 
         progress = LinearProgressIndicator(this).apply {
             max = 100
@@ -193,7 +203,7 @@ class MainActivity : AppCompatActivity() {
             trackColor = Color.TRANSPARENT
             visibility = View.GONE
         }
-        root.addView(progress, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
+        webArea.addView(progress, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
 
         offlineTitle = TextView(this).apply {
             textSize = 20f
@@ -225,7 +235,7 @@ class MainActivity : AppCompatActivity() {
             addView(offlineBody)
             addView(retryButton, LinearLayout.LayoutParams(-2, -2))
         }
-        root.addView(offline, FrameLayout.LayoutParams(-1, -1))
+        webArea.addView(offline, FrameLayout.LayoutParams(-1, -1))
 
         fullscreen = FrameLayout(this).apply {
             setBackgroundColor(Color.BLACK)
@@ -367,8 +377,25 @@ class MainActivity : AppCompatActivity() {
             is Route.Phone -> Outside.dial(this, route.uri)
             is Route.Mail -> Outside.mail(this, route.uri)
             is Route.App -> Outside.app(this, route.uri)
-            is Route.External -> Outside.website(this, route.url)
+            is Route.External -> if (Feeds.isPodcastLink(route.url)) openPodcast(route.url) else Outside.website(this, route.url)
             Route.None -> Unit
+        }
+    }
+
+    /**
+     * A podcast of the yeshiva (its Spotify, Apple or YouTube link on the site) opens in the
+     * app's own player, which also plays with the screen off. Any other link goes outside.
+     */
+    private fun openPodcast(url: String) {
+        // The bar may switch to "working..." only while hidden
+        progress.visibility = View.GONE
+        progress.isIndeterminate = true
+        progress.visibility = View.VISIBLE
+        lifecycleScope.launch {
+            val found = withContext(Dispatchers.IO) { runCatching { Podcasts.find(url) }.getOrNull() }
+            progress.visibility = View.GONE
+            progress.isIndeterminate = false
+            if (found != null) PodcastActivity.open(this@MainActivity, found) else Outside.website(this@MainActivity, url)
         }
     }
 
@@ -419,6 +446,10 @@ class MainActivity : AppCompatActivity() {
     /** A link opened from another app, a notification or shared text. True if a page was loaded. */
     private fun handleIntent(intent: Intent?): Boolean {
         val url = when (intent?.action) {
+            Playback.ACTION_NOW_PLAYING -> {
+                Playback.with(this) { Playback.currentPodcast()?.let { PodcastActivity.open(this, it) } }
+                null
+            }
             Intent.ACTION_VIEW -> intent.dataString
             Intent.ACTION_SEND -> {
                 val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: ""
@@ -475,6 +506,7 @@ class MainActivity : AppCompatActivity() {
         val first = found.first()
         val text = if (found.size == 1) "${first.kind}: ${first.title}" else "נוספו ${found.size} פריטים חדשים באתר"
         Snackbar.make(root, text, Snackbar.LENGTH_LONG)
+            .setAnchorView(mini.takeIf { it.visibility == View.VISIBLE })
             .setAction("לצפייה") { send(Routes.of(if (found.size == 1) first.link else Routes.HOME)) }
             .show()
     }
@@ -483,6 +515,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val release = runCatching { Updater.newer(this@MainActivity, force = false) }.getOrNull() ?: return@launch
             Snackbar.make(root, "יש גרסה חדשה של היישומון", Snackbar.LENGTH_INDEFINITE)
+                .setAnchorView(mini.takeIf { it.visibility == View.VISIBLE })
                 .setAction("עדכן") { installUpdate(release) }
                 .show()
         }
