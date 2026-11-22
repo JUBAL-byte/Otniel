@@ -45,7 +45,7 @@ object Feeds {
                 title = own(item, "title")?.text()?.trim().orEmpty().ifBlank { "פרק ללא שם" },
                 date = parseDate(own(item, "pubDate")?.text().orEmpty()),
                 durationSec = parseDuration(own(item, "itunes:duration")?.text().orEmpty()),
-                audioUrl = url,
+                audioUrl = secure(url),
                 description = plainText(
                     own(item, "content:encoded")?.text()?.takeIf { it.isNotBlank() }
                         ?: own(item, "description")?.text()?.takeIf { it.isNotBlank() }
@@ -55,6 +55,9 @@ object Feeds {
         }
         return Feed(title, author, image, episodes)
     }
+
+    /** Android lets the app use only secure (https) addresses; podcast hosts serve both. */
+    fun secure(url: String): String = if (url.startsWith("http://", ignoreCase = true)) "https://" + url.substring(7) else url
 
     /** HTML descriptions as plain text, keeping the paragraph breaks. */
     fun plainText(html: String): String {
@@ -101,6 +104,7 @@ object Feeds {
     // ------------------------------------------------------------------ which podcast a link belongs to
 
     private val SPOTIFY_SHOW = Regex("open\\.spotify\\.com/(?:[a-z-]+/)?show/([A-Za-z0-9]+)")
+    private val SPOTIFY_EPISODE = Regex("open\\.spotify\\.com/(?:[a-z-]+/)?episode/([A-Za-z0-9]+)")
     private val APPLE_ID = Regex("podcasts\\.apple\\.com/.*?/id(\\d+)")
     private val YOUTUBE_LIST = Regex("youtube\\.com/.*[?&]list=([\\w-]+)")
 
@@ -108,12 +112,13 @@ object Feeds {
         val u = url.replace("&amp;", "&")
         val out = HashSet<String>()
         SPOTIFY_SHOW.find(u)?.let { out += "spotify:" + it.groupValues[1] }
+        SPOTIFY_EPISODE.find(u)?.let { out += "spotify-episode:" + it.groupValues[1] }
         APPLE_ID.find(u)?.let { out += "apple:" + it.groupValues[1] }
         YOUTUBE_LIST.find(u)?.let { out += "youtube:" + it.groupValues[1] }
         return out
     }
 
-    /** A link to a whole podcast (on Spotify, Apple Podcasts or a YouTube playlist). */
+    /** A link to a podcast or one of its episodes (on Spotify, Apple Podcasts or a YouTube playlist). */
     fun isPodcastLink(url: String): Boolean = keys(url).isNotEmpty()
 
     /** The podcast on the site's podcasts page that [url] points to, if any. */
@@ -123,6 +128,19 @@ object Feeds {
         return shows.firstOrNull { show ->
             listOf(show.spotify, show.apple, show.youtube).any { link -> link.isNotBlank() && keys(link).any { it in wanted } }
         }
+    }
+
+    fun isSpotifyShow(url: String): Boolean = SPOTIFY_SHOW.containsMatchIn(url)
+
+    fun isSpotifyEpisode(url: String): Boolean = SPOTIFY_EPISODE.containsMatchIn(url)
+
+    /** The podcast's name on a Spotify episode page ("Listen to this episode from <name> on Spotify"). */
+    fun showNameInSpotifyPage(html: String): String {
+        val doc = Jsoup.parse(html)
+        val text = listOf("meta[property=og:description]", "meta[name=description]", "meta[name=twitter:description]")
+            .mapNotNull { doc.selectFirst(it)?.attr("content") }
+            .firstOrNull { it.contains(" on Spotify") } ?: return ""
+        return Regex("(?s)episode from (.+?) on Spotify").find(text)?.groupValues?.get(1)?.trim().orEmpty()
     }
 
     fun appleId(url: String): Long? = APPLE_ID.find(url)?.groupValues?.get(1)?.toLongOrNull()

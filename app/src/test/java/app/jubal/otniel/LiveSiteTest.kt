@@ -11,9 +11,10 @@ import java.net.URL
  * in the site's markup shows up as a failed check instead of an empty screen on the phone.
  */
 class LiveSiteTest {
-    private fun get(url: String): String {
+    private fun get(url: String, language: String = ""): String {
         val c = URL(url).openConnection() as HttpURLConnection
         c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36")
+        if (language.isNotEmpty()) c.setRequestProperty("Accept-Language", language)
         c.connectTimeout = 20_000
         c.readTimeout = 30_000
         return c.inputStream.bufferedReader().use { it.readText() }
@@ -61,15 +62,22 @@ class LiveSiteTest {
         var byName = 0
         var sample = ""
         val missing = ArrayList<String>()
+        val feeds = ArrayList<String>()
         for (show in shows) {
             var feed = Feeds.appleId(show.apple)?.let { id ->
                 runCatching { J.parse(get("https://itunes.apple.com/lookup?id=$id&entity=podcast&country=IL"))["results"][0]["feedUrl"].str() }.getOrDefault("")
             }.orEmpty()
             if (feed.isNotBlank()) byApple++ else {
                 val name = show.title.ifBlank {
-                    if (show.spotify.isBlank()) "" else runCatching {
-                        J.parse(get("https://open.spotify.com/oembed?url=" + enc(show.spotify)))["title"].str()
-                    }.getOrDefault("")
+                    when {
+                        Feeds.isSpotifyShow(show.spotify) -> runCatching {
+                            J.parse(get("https://open.spotify.com/oembed?url=" + enc(show.spotify)))["title"].str()
+                        }.getOrDefault("")
+                        Feeds.isSpotifyEpisode(show.spotify) -> runCatching {
+                            Feeds.showNameInSpotifyPage(get(show.spotify, "en"))
+                        }.getOrDefault("")
+                        else -> ""
+                    }
                 }
                 if (name.isNotBlank()) {
                     feed = runCatching {
@@ -80,11 +88,13 @@ class LiveSiteTest {
                 if (feed.isNotBlank()) byName++ else missing += name.ifBlank { show.spotify.ifBlank { show.youtube } }
             }
             if (sample.isEmpty() && feed.isNotBlank()) sample = feed
+            if (feed.isNotBlank()) feeds += feed
         }
         println("podcast feeds: ${byApple + byName} of ${shows.size} (by Apple link $byApple, by name $byName); without: ${missing.take(25)}")
+        println("podcast feed addresses: ${feeds.take(12)}")
         if (sample.isNotEmpty()) {
-            val f = Feeds.parse(get(sample))
-            println("podcast feed e.g.: ${f.title} | ${f.episodes.size} episodes | newest: ${f.episodes.firstOrNull()?.title} | ${Feeds.length(f.episodes.firstOrNull()?.durationSec ?: 0)}")
+            val f = Feeds.parse(get(Feeds.secure(sample)))
+            println("podcast feed e.g.: ${f.title} | ${f.episodes.size} episodes | newest: ${f.episodes.firstOrNull()?.title} | ${Feeds.length(f.episodes.firstOrNull()?.durationSec ?: 0)} | ${f.episodes.firstOrNull()?.audioUrl}")
             assertTrue(f.episodes.isNotEmpty())
         }
         assertTrue(byApple + byName >= 5)

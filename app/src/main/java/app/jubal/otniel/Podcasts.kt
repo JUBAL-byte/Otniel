@@ -56,6 +56,14 @@ object Podcasts {
         }.getOrDefault("")
     }
 
+    /** The podcast's name, from the page of one of its episodes on Spotify. */
+    private fun spotifyEpisodeShowName(url: String): String = runCatching {
+        val request = Request.Builder().url(url).header("User-Agent", Net.USER_AGENT).header("Accept-Language", "en").build()
+        Net.client.newCall(request).execute().use { r ->
+            if (!r.isSuccessful) "" else Feeds.showNameInSpotifyPage(r.body?.string() ?: "")
+        }
+    }.getOrDefault("")
+
     /** The cards on otniel.org/all-podcasts, kept on the phone for a day. */
     fun shows(): List<Show> {
         val cached = Store.cached("shows")
@@ -76,8 +84,15 @@ object Podcasts {
         Store.showFeed(show.key).takeIf { it.isNotBlank() }?.let { return it }
         var feed = Feeds.appleId(show.apple)?.let { runCatching { lookupFeed(it) }.getOrNull() }.orEmpty()
         if (feed.isBlank()) {
-            val name = show.title.ifBlank { if (show.spotify.isNotBlank()) spotifyName(show.spotify) else "" }
-            feed = runCatching { searchFeed(name) }.getOrNull().orEmpty()
+            // Most cards link to one episode on Spotify; its page names the podcast
+            val names = LinkedHashSet<String>()
+            if (show.title.isNotBlank()) names += show.title
+            if (Feeds.isSpotifyShow(show.spotify)) names += spotifyName(show.spotify)
+            if (Feeds.isSpotifyEpisode(show.spotify)) names += spotifyEpisodeShowName(show.spotify)
+            for (name in names.filter { it.isNotBlank() }) {
+                feed = runCatching { searchFeed(name) }.getOrNull().orEmpty()
+                if (feed.isNotBlank()) break
+            }
         }
         if (feed.isNotBlank()) Store.setShowFeed(show.key, feed)
         return feed
@@ -94,7 +109,7 @@ object Podcasts {
     fun load(feedUrl: String): Feed {
         val key = "feed_" + feedUrl.hashCode().toUInt()
         return try {
-            val body = Net.text(feedUrl)
+            val body = Net.text(Feeds.secure(feedUrl))
             val feed = Feeds.parse(body)
             if (feed.episodes.isNotEmpty()) Store.putCache(key, body)
             feed

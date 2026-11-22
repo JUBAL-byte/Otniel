@@ -261,7 +261,14 @@ class ParserTest {
         assertEquals(null, Feeds.showFor("https://open.spotify.com/show/BBB", shows))
         assertEquals(null, Feeds.showFor("https://www.youtube.com/watch?v=rYDzoIPBT6M", shows))
         assertTrue(Feeds.isPodcastLink("https://podcasts.apple.com/il/podcast/x/id1654390049"))
-        assertTrue(!Feeds.isPodcastLink("https://open.spotify.com/episode/123"))
+        assertTrue(Feeds.isPodcastLink("https://open.spotify.com/episode/123"))
+        assertTrue(!Feeds.isPodcastLink("https://www.youtube.com/watch?v=rYDzoIPBT6M"))
         assertEquals(1654390049L, Feeds.appleId("https://podcasts.apple.com/il/podcast/x/id1654390049"))
+        val withEpisode = listOf(Show("", "", "https://open.spotify.com/episode/5Xyz?si=a", "", "", ""))
+        assertEquals(withEpisode[0], Feeds.showFor("https://open.spotify.com/episode/5Xyz", withEpisode))
+        assertTrue(Feeds.isSpotifyEpisode(withEpisode[0].spotify))
+        assertEquals("https://anchor.fm/a.mp3", Feeds.secure("http://anchor.fm/a.mp3"))
+        val page = "<html><head><meta property=\"og:description\" content=\"Listen to this episode from יהדות ופמיניזם - הרב אמנון דוקוב on Spotify. שיעור 5\"></head></html>"
+        assertEquals("יהדות ופמיניזם - הרב אמנון דוקוב", Feeds.showNameInSpotifyPage(page))
     }
 }

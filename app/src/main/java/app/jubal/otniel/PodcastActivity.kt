@@ -178,6 +178,7 @@ class PodcastActivity : AppCompatActivity() {
             loading.visibility = View.GONE
             refresh.isRefreshing = false
             result.onSuccess { show(it) }.onFailure {
+                android.util.Log.w("Otniel", "podcast feed ${podcast.feedUrl}: $it")
                 if (feed == null) {
                     messageText.text = "לא הצלחנו לטעון את הפרקים. אולי אין חיבור לאינטרנט."
                     message.visibility = View.VISIBLE
